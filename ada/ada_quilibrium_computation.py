@@ -15,11 +15,9 @@ from preprocess import get_dataset_info, get_dataset_info_oneclass
 tol = 1e-3
 step_size = 0.1
 
-def extract_features(feature_type, theta_size, img_path, extractor, dets):
-    if feature_type == 'fc7':
-        return None
-        #return extractfeatures(img_path, extractor, dets)
-    elif feature_type == 'hist':
+'''
+    #hist features
+    if feature_type == 'hist':
         img = cv2.imread(img_path)
         features = []
         for det in dets:
@@ -28,6 +26,7 @@ def extract_features(feature_type, theta_size, img_path, extractor, dets):
             hist = hist / norm(hist)
             features.append(hist.flatten())
         return features
+'''
 
 def iou_loss1(bb1, bb2):
     w = max(0, min(bb1[2], bb2[2]) - max(bb1[0], bb2[0]))
@@ -85,15 +84,14 @@ def solveGame(dets, Sf, Sp, psi_set):
 def nash_equilibrium(imgpath, theta, dets, psi_set):
     Sp = []
     Sf = []
-    #arbitrary pick at fisrt, argmax according to the original paper
+    #arbitrary pick at first, argmax according to the original paper
     first_y_id = np.argmax(psi_set)
     Sp.append(first_y_id)
     Sf.append(first_y_id)
     lenSp = len(Sp)
     lenSf = len(Sf)
     while True:
-        f, p, vp = solveGame(dets, np.array(Sf), np.array(Sp), psi_set)
-        
+        f, p, vp = solveGame(dets, np.array(Sf), np.array(Sp), psi_set) 
         #find y_new
         max_expected_loss = 0.
         max_y_id = -1
@@ -135,6 +133,7 @@ def nash_equilibrium(imgpath, theta, dets, psi_set):
 
 def init_theta():
     #theta = np.random.rand(theta_size)
+    #can init with SVM?
     theta = np.random.normal(0, 0.1, theta_size)
     theta = theta / norm(theta)
     return theta
@@ -223,50 +222,47 @@ if __name__ == '__main__':
     bb_number_threshold = 250
     iou_threshold = 0.5
 
-    feature_types = ['fc7', 'hist']
-    feature_type = 'fc7'
-    assert feature_type in feature_types
     target_classname = 'person'
 
-    if feature_type == 'fc7':
-        print("Preprocessing average feature of training set...")
+    print("Preprocessing average feature of training set...")
         
-        dataset_names = ['trainval', 'test']
-        theta_size = 4096
-        average_feature = np.zeros(theta_size)
-        features_gt_ = {}
-        img_paths_ = {}
-        gts_ = {}
-        for dataset_name in dataset_names:
-            all_img_paths, all_gts = get_dataset_info(dataset_name)
-            gt_info = pkl.load(open('vot_'+dataset_name+'_gt.pkl', 'rb'))
-            all_classes_gt = gt_info[0]
-            all_features_gt = gt_info[1]
-            features_gt = []
-            img_paths = []
-            gts = []
-            for img_path, class_infos, feature_gt in zip(all_img_paths, all_classes_gt, all_features_gt):
-                for class_info, f_gt in zip(class_infos, feature_gt):
-                    classname = class_info[0]
-                    bbox_gt = class_info[1]
-                    if classname == target_classname:
-                        #normalize feature
-                        features_gt.append(f_gt/norm(f_gt))
-                        img_paths.append(os.path.abspath(os.path.join('../data/JPEGImages', img_path)))
-                        gts.append(bbox_gt)
-                        break
-            if dataset_name == 'trainval':
-                for feature_gt in features_gt:
-                    average_feature += feature_gt
-                average_feature /= len(img_paths)
-            features_gt_[dataset_name] = features_gt
-            img_paths_[dataset_name] = img_paths
-            gts_[dataset_name] = gts
+    dataset_names = ['trainval', 'test']
+    theta_size = 4096
+    features_gt_ = {}
+    img_paths_ = {}
+    gts_ = {}
+
+    average_feature = np.zeros(theta_size)
+    for dataset_name in dataset_names:
+        all_img_paths, all_gts = get_dataset_info(dataset_name)
+        gt_info = pkl.load(open('../pkls/vot_'+dataset_name+'_gt.pkl', 'rb'))
+        all_classes_gt = gt_info[0]
+        all_features_gt = gt_info[1]
+        features_gt = []
+        img_paths = []
+        gts = []
+        for img_path, class_infos, feature_gt in zip(all_img_paths, all_classes_gt, all_features_gt):
+            for class_info, f_gt in zip(class_infos, feature_gt):
+                classname = class_info[0]
+                bbox_gt = class_info[1]
+                if classname == target_classname:
+                    #normalize feature
+                    features_gt.append(f_gt/norm(f_gt))
+                    img_paths.append(os.path.abspath(os.path.join('../data/JPEGImages', img_path)))
+                    gts.append(bbox_gt)
+                    break
+        if dataset_name == 'trainval':
+            for feature_gt in features_gt:
+                average_feature += feature_gt
+            average_feature /= len(img_paths)
+        features_gt_[dataset_name] = features_gt
+        img_paths_[dataset_name] = img_paths
+        gts_[dataset_name] = gts
 
     print("Using edge_boxes for bounding box proposals...")
     detslist_ = {}
     for dataset_name in dataset_names:
-        bbslist_pkl = 'vot_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
+        bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
         if os.path.exists(bbslist_pkl):
             bbslist = pkl.load(open(bbslist_pkl, 'rb'))
         else:
@@ -276,8 +272,16 @@ if __name__ == '__main__':
         detslist = [ bbs[:bb_number_threshold] for bbs in bbslist ]
         detslist_[dataset_name] = detslist
     
+    #extract bbs feature by outter extractor
+    features_dets_ = {}
+    for dataset_name in dataset_names:
+        bbslist_feature_pkl = '../pkl/vot_features_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
+        bbslist_features = pkl.load(open(bbslist_feature_pkl, 'rb'))
+        features_dets_[dataset_name] = bbslist_features
+    
     import IPython
     IPython.embed()
+    
     #init theta
     theta = init_theta()
     
@@ -285,6 +289,7 @@ if __name__ == '__main__':
     img_paths = img_paths_['trainval']
     features_gt = features_gt_['trainval']
     detslist = detslist_['trainval']
+    features_det = features_dets['trainval']
 
     print("Starting loops for optimizing theta...")
     convergence = False
@@ -301,7 +306,9 @@ if __name__ == '__main__':
         dets = [ det[:-1] for det in Y]
         dets = np.array(dets)
             
-        fi_set = extract_features(feature_type, theta_size, img_path, extractor, dets)
+        #fi_set = extract_features(feature_type, theta_size, img_path, extractor, dets)
+        fi_set = feautres_det[bid]
+
         psi_set = np.array([ sum(theta * (fi - fi_gt)) for fi in fi_set ])
         #print("start solving nash_equibrium for {} of bid {}...".format(img_path, bid))
         Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
@@ -347,6 +354,7 @@ if __name__ == '__main__':
         if delta < tol:
             convergence = True
         print("Optimization completed!")
+    
     import IPython
     IPython.embed()
     print("Starting to test images using theta...")
