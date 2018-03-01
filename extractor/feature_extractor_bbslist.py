@@ -23,7 +23,7 @@ if __name__ == '__main__':
     bbslist = dets_info[1]
     features_dets = []
     for img_path, bbs in zip(img_paths, bbslist):
-        dets = np.array([[0.] + bb[:-1] for bb in bbs], dtype='float32')
+        dets = np.array([[0.] + list(bb[:-1]) for bb in bbs], dtype='float32')
         feature_dets = extractfeatures(img_path, extractor, dets)
         feature_dets = feature_dets.data.cpu().numpy()
         features_dets.append(feature_dets)

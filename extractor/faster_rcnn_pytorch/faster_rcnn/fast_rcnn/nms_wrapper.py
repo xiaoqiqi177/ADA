@@ -6,7 +6,7 @@
 # --------------------------------------------------------
 
 from faster_rcnn.nms.cpu_nms import cpu_nms
-from faster_rcnn.nms.gpu_nms import gpu_nms
+#from faster_rcnn.nms.gpu_nms import gpu_nms
 # from ..nms import cpu_nms
 # from ..nms import gpu_nms
 from .config import cfg

@@ -5,7 +5,7 @@ from faster_rcnn.faster_rcnn import FasterRCNN
 import os
 def build_extractor(model_file):
     extractor = FasterRCNN()
-    extractor.cuda()
+    #extractor.cuda()
     extractor.eval()
     network.load_net(model_file, extractor)
     print('load model successfully!')
