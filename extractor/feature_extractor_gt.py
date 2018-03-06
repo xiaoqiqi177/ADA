@@ -36,8 +36,7 @@ def test_features(dataset_name):
     feature_summary = { classname:[] for classname in CLASS_NAMES }
     feature_all = []
     for classes, features in zip(classes_gt, features_gt):
-        for info, feature in zip(classes, features):
-            classname = info[0]
+        for classname, feature in zip(classes, features):
             newfeature = feature / norm(feature)
             newfeature = feature
             feature_summary[classname].append(newfeature)
@@ -64,7 +63,15 @@ def extract_gt_features(dataset_name):
     classes_gt = []
     for img_path, gt in zip(img_paths, gts):
         classes = [ g[0] for g in gt]
-        dets = np.array([[0.] + list(g[1]) for g in gt], dtype='float32')
+        dets = np.array([[0.] + [g[1][1], g[1][0], g[1][3], g[1][2]] for g in gt], dtype='float32')
+        #dets = np.array([[0.] + list(g[1]) for g in gt], dtype='float32')
+        DEBUG = False
+        if DEBUG:
+            img = cv2.imread(img_path)
+            for det in dets:
+                cv2.rectangle(img, (int(det[1]), int(det[2])), (int(det[3]), int(det[4])), (0, 204, 0), 2)
+            cv2.imshow('img', img)
+            cv2.waitKey(0)
         feature_gt = extractfeatures(img_path, extractor, dets)
         feature_gt = feature_gt.data.cpu().numpy()
         classes_gt.append(classes)
