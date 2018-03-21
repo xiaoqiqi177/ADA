@@ -16,11 +16,15 @@ if __name__ == '__main__':
     
     bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, classname)
     if os.path.exists(bbslist_pkl):
-        dets_info = pkl.load(open(bbslist_pkl, 'rb'))
-        img_paths = dets_info[0]
-        bbslist = dets_info[1]
+        print('{} exists'.format(bbslist_pkl))
     else:
         img_paths = [os.path.abspath(img_path) for img_path in img_paths]
-        bbslist = get_windows(img_paths)
+        bbslist = []
+        step = 0
+        gap = 100
+        img_no = len(img_paths)
+        while step < img_no:
+            bbslist.extend(get_windows(img_paths[step:min(img_no, step+gap)]))
+            step += gap
         pkl.dump([img_paths, bbslist], open(bbslist_pkl, 'wb'))
         print('generating bounding boxes completed, exit')

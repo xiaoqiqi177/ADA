@@ -5,6 +5,7 @@ import os
 import numpy as np
 import scipy.io
 import cv2
+import time
 
 script_dirname = os.path.abspath(os.path.dirname(__file__))
 
@@ -30,24 +31,12 @@ def get_windows(image_fnames, cmd='edge_boxes_wrapper'):
     fnames_cell = '{' + ','.join("'{}'".format(x) for x in image_fnames) + '}'
     command = "{}({}, '{}')".format(cmd, fnames_cell, output_filename)
 
-    toolboxpath = os.path.abspath('./toolbox')
+    toolboxpath = os.path.abspath('./edge_boxes_with_python/toolbox/')
     pathcommand1 = "addpath(genpath('{}'));".format(toolboxpath)
     pathcommand2 = "savepath;"
     # Execute command in MATLAB.
-    mc1 = "matlab -nojvm -r \"{}\"".format(pathcommand1)
-    pid1 = subprocess.Popen(
-        shlex.split(mc1), stdout=open('/dev/null', 'w'), cwd=script_dirname)
-    retcode1 = pid1.wait()
-    if retcode1 != 0:
-        raise Exception("Matlab script1 did not exit successfully!")
-    
-    mc2 = "matlab -nojvm -r \"{}\"".format(pathcommand2)
-    pid2 = subprocess.Popen(
-        shlex.split(mc2), stdout=open('/dev/null', 'w'), cwd=script_dirname)
-    retcode2 = pid2.wait()
-    if retcode2 != 0:
-        raise Exception("Matlab script2 did not exit successfully!")
-    
+    path_mc = "matlab -nojvm -r \"{} {} exit\"".format(pathcommand1, pathcommand2)
+    os.system(path_mc)
     mc = "matlab -nojvm -r \"try; {}; catch; exit; end; exit\"".format(command)
     pid = subprocess.Popen(
         shlex.split(mc), stdout=open('/dev/null', 'w'), cwd=script_dirname)
