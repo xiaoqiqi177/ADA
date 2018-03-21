@@ -38,7 +38,7 @@ def test_features(dataset_name):
     for classes, features in zip(classes_gt, features_gt):
         for classname, feature in zip(classes, features):
             newfeature = feature / norm(feature)
-            newfeature = feature
+            #newfeature = feature
             feature_summary[classname].append(newfeature)
             feature_all.append(newfeature)
     for classname in CLASS_NAMES:
@@ -81,5 +81,5 @@ def extract_gt_features(dataset_name):
 
 if __name__ == '__main__':
     dataset_name = 'trainval'
-    extract_gt_features(dataset_name)
+    #extract_gt_features(dataset_name)
     test_features(dataset_name)

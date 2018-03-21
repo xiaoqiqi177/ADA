@@ -213,6 +213,7 @@ class FasterRCNN(nn.Module):
     def extractfeatures(self, im_data, im_info, dets):
         detnum = len(dets)
         features, rois = self.rpn(im_data, im_info)
+        dets *= im_info[:, -1]
         rois = Variable(torch.cuda.FloatTensor(dets))
         pooled_features = self.roi_pool(features, rois)
         x = pooled_features.view(pooled_features.size()[0], -1)
