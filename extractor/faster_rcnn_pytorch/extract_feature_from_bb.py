@@ -5,7 +5,7 @@ from faster_rcnn.faster_rcnn import FasterRCNN
 import os
 def build_extractor(model_file):
     extractor = FasterRCNN()
-    #extractor.cuda()
+    extractor.cuda()
     extractor.eval()
     network.load_net(model_file, extractor)
     print('load model successfully!')
@@ -13,6 +13,12 @@ def build_extractor(model_file):
 
 def extractfeatures(im_file, extractor, dets):    
     image = cv2.imread(im_file)
+    DEBUG = False
+    if DEBUG:
+        for det in dets:
+            cv2.rectangle(image, (int(det[1]), int(det[2])), (int(det[3]), int(det[4])), (0, 204, 0), 2)
+        cv2.imshow('img', image)
+        cv2.waitKey(0)
     features = extractor.extract(image, dets)
     return features
 

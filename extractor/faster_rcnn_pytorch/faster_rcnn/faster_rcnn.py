@@ -14,8 +14,8 @@ from .fast_rcnn.bbox_transform import bbox_transform_inv, clip_boxes
 
 from . import network
 from .network import Conv2d, FC
-from .roi_pooling.modules.roi_pool_py import RoIPool
-#from .roi_pooling.modules.roi_pool import RoIPool
+#from .roi_pooling.modules.roi_pool_py import RoIPool
+from .roi_pooling.modules.roi_pool import RoIPool
 from .vgg16 import VGG16
 
 
@@ -213,8 +213,8 @@ class FasterRCNN(nn.Module):
     def extractfeatures(self, im_data, im_info, dets):
         detnum = len(dets)
         features, rois = self.rpn(im_data, im_info)
-        #rois = Variable(torch.cuda.FloatTensor(dets))
-        rois = Variable(torch.FloatTensor(dets))
+        dets *= im_info[:, -1]
+        rois = Variable(torch.cuda.FloatTensor(dets))
         pooled_features = self.roi_pool(features, rois)
         x = pooled_features.view(pooled_features.size()[0], -1)
         x = self.fc6(x)

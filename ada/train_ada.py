@@ -69,25 +69,26 @@ def train_thread_bid(bid):
     Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
     return f, p, Sf, Sp, fi_set
 
-def load_info(dataset_name = 'trainval', target_classname):
-    all_img_paths, all_gts = get_dataset_info(dataset_name)
+def load_info(dataset_name, target_classname):
+    img_paths, _ = get_dataset_info(dataset_name)
     gt_info = pkl.load(open('../pkls/vot_'+dataset_name+'_gt.pkl', 'rb'))
-    all_classes_gt = gt_info[0]
-    all_features_gt = gt_info[1]
-    features_gt = []
-    img_paths = []
-    gts = []
-    for img_path, class_infos, feature_gt in zip(all_img_paths, all_classes_gt, all_features_gt):
+    classes_gt = gt_info[0]
+    features_gt = gt_info[1]
+    features_gt_use = []
+    img_paths_use = []
+    bboxs_gt_use = []
+    for img_path, class_infos, feature_gt in zip(img_paths, classes_gt, features_gt):
         for class_info, f_gt in zip(class_infos, feature_gt):
             classname = class_info[0]
             bbox_gt = class_info[1]
             if classname == target_classname:
                 #normalize feature
-                features_gt.append(f_gt / norm(f_gt))
-                img_paths.append(os.path.abspath(os.path.join('../data/JPEGImages', img_path)))
-                gts.append(bbox_gt)
+                features_gt_use.append(f_gt / norm(f_gt))
+                img_paths_use.append(os.path.abspath(os.path.join('../data/JPEGImages', img_path)))
+                bboxs_gt_use.append(bbox_gt)
+                #only store the first item for one image
                 break
-    return features_gt, img_paths, gts
+    return features_gt_use, img_paths_use, bboxs_gt_use
 
 if __name__ == '__main__':
     np.random.seed(1)
@@ -99,7 +100,7 @@ if __name__ == '__main__':
     #load trainval dataset of certain class
     target_classname = 'person'
     dataset_name = 'trainval'
-    features_gt, img_paths, gts = laod_info(dataset_name, target_classname)
+    features_gt, img_paths, bboxs_gt = load_info(dataset_name, target_classname)
      
     #processing average feature of training set
     if dataset_name == 'trainval':
@@ -116,6 +117,7 @@ if __name__ == '__main__':
     else:
         bbslist = get_windows(img_paths_[dataset_name])
         pkl.dump([img_paths_[dataset_name], bbslist], open(bbslist_pkl, 'wb'))
+
     #top 250
     #detslist = [ bbs[:bb_number_threshold] for bbs in bbslist ]
     
