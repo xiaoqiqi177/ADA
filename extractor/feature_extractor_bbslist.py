@@ -22,15 +22,17 @@ if __name__ == '__main__':
         img_paths = dets_info[0]
         bbslist = dets_info[1]
     else:
-        bbslist = get_windows(img_paths)
-        pkl.dump([img_paths, bbslist], open(bbslist_pkl, 'wb'))
-        print('generating bounding boxes completed, exit')
+        print('no bounding boxes pkls, exit')
         exit(0)
 
     model_file = 'faster_rcnn_pytorch/models/VGGnet_fast_rcnn_iter_70000.h5'
     extractor = build_extractor(model_file)
-    features_dets = []
+    #features_dets = []
     MAX_NO = 250
+    
+    pkl_dir = '../pkls/vot_features_{}_bbslist_{}'.format(dataset_name, classname)
+    if not os.path.exists(pkl_dir):
+        os.mkdir(pkl_dir)
     for img_path, bbs in zip(img_paths, bbslist):
         dets = np.array([[0.] + list(bb[:-1]) for bb in bbs[:MAX_NO]], dtype='float32')
         DEBUG = True
@@ -42,6 +44,7 @@ if __name__ == '__main__':
             cv2.waitKey(0)
         feature_dets = extractfeatures(img_path, extractor, dets)
         feature_dets = feature_dets.data.cpu().numpy()
-        features_dets.append(feature_dets)
-    dets_pkl = 'vot_features_{}_bbslist_{}.pkl'.format(dataset_name, classname)
-    pkl.dump(features_dets, open(dets_pkl, 'wb'))
+        #features_dets.append(feature_dets)
+        img_id = img_path.split('/')[-1].split('.')[0]
+        dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}_{}.pkl'.format(dataset_name, classname, img_id)
+        pkl.dump(feature_dets, open(dets_pkl, 'wb'))

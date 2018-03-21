@@ -31,7 +31,7 @@ CLASS_NAMES = [
     'tvmonitor',
 ]
 def test_features(dataset_name):
-    gt_pkl = '../pkls/vot_trainval_gt.pkl'.format(dataset_name)
+    gt_pkl = '../pkls/vot_{}_gt.pkl'.format(dataset_name)
     classes_gt, features_gt = pkl.load(open(gt_pkl, 'rb'))
     feature_summary = { classname:[] for classname in CLASS_NAMES }
     feature_all = []
@@ -80,6 +80,6 @@ def extract_gt_features(dataset_name):
     pkl.dump([classes_gt, features_gt], open(gt_pkl, 'wb'))
 
 if __name__ == '__main__':
-    dataset_name = 'trainval'
-    #extract_gt_features(dataset_name)
+    dataset_name = 'test'
+    extract_gt_features(dataset_name)
     test_features(dataset_name)
