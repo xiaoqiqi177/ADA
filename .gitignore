@@ -3,5 +3,6 @@
 *.pkl
 *.so
 *.o
+*.swap
 .DS_Store
 __pycache__
