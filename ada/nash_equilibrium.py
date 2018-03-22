@@ -13,8 +13,7 @@ def solveGame(dets, Sf, Sp, psi_set):
     try:
         p, v2 = solve_p(G)
     except:
-        import IPython
-        IPython.embed()
+        print(G)
     assert abs(v1 - v2) < tol
     return f, p, v1
     

@@ -24,7 +24,7 @@ def expected_feature_difference(ps, Sps, fi_sets, average_feature):
     new_feature = np.zeros(average_feature.shape, dtype='float32')
     for p, Sp, fi_set in zip(ps, Sps, fi_sets): #lenp * 1024
         try:
-            fi_set_p #= fi_set[Sp]
+            fi_set_p = fi_set[Sp]
         except:
             import IPython
             IPython.embed()
@@ -65,6 +65,15 @@ def init_worker():
 def train_thread_bid(bid, img_path, gt, fi_gt, Y, fi_set):
     dets = [ det[:-1] for det in Y]
     dets = np.array(dets)
+    if DEBUG:
+        feature_differences = np.array([ sum( (fi - fi_gt)**2 ) for fi in fi_set ])
+        nearest_id = np.argmin(feature_differences)
+        img = cv2.imread(img_path)
+        det = dets[nearest_id]
+        cv2.rectangle(img, (int(det[1]), int(det[0])), (int(det[3]), int(det[2])), (255, 0, 0), 1)
+        cv2.rectangle(img, (int(gt[1]), int(gt[0])), (int(gt[3]), int(gt[2])), (0, 255, 0), 1)
+        cv2.imshow('img', img)
+        cv2.waitKey(0)
     psi_set = np.array([ sum(theta * (fi - fi_gt)) for fi in fi_set ])
     Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
     return f, p, Sf, Sp
@@ -82,8 +91,8 @@ def load_info(dataset_name, target_classname):
             bbox_gt = bbox_gt[1]
             if classname == target_classname:
                 #normalize feature
-                #features_gt_use.append(f_gt / norm(f_gt))
-                features_gt_use.append(f_gt)
+                features_gt_use.append(f_gt / norm(f_gt))
+                #features_gt_use.append(f_gt)
                 img_paths_use.append(img_path)
                 bboxs_gt_use.append(bbox_gt)
                 #only store the first item for one image
@@ -91,6 +100,7 @@ def load_info(dataset_name, target_classname):
     return features_gt_use, img_paths_use, bboxs_gt_use
 
 if __name__ == '__main__':
+    global DEBUG
     DEBUG = False
     np.random.seed(1)
 
@@ -177,7 +187,7 @@ if __name__ == '__main__':
                 Y = bbslist[bbs_id]
                 with open(dets_pkl, 'rb') as fdets:
                     fi_set = pkl.load(fdets)
-                #fi_set = [ fi / norm(fi) for fi in fi_set ]
+                fi_set = [ fi / norm(fi) for fi in fi_set ]
                 fi_sets.append(fi_set[:bb_number_threshold])
                 pids.append(pool.apply_async(train_thread_bid, (idx, img_path, gt, fi_gt, Y[:bb_number_threshold], fi_set[:bb_number_threshold]), callback = log_result))
             pool.close()
@@ -194,7 +204,8 @@ if __name__ == '__main__':
         print('*---- update theta ----*')
         theta = update_theta(theta, average_feature, Sps, ps, np.array(fi_sets), stepsize)
         saved_theta.append(theta)
-        
+        import IPython
+        IPython.embed()
         #intermediate data periodically
         delta = test_convergence(theta, average_feature, Sps, ps, np.array(fi_sets))
         print('delta of Loop {}: {}'.format(iter_number, delta))
