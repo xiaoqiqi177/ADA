@@ -8,7 +8,6 @@ import pickle as pkl
 from multiprocessing import Pool
 import signal
 import sys
-from edge_boxes_with_python.edge_boxes import get_windows
 from preprocess import get_dataset_info, get_dataset_info_oneclass
 from losses import *
 from nash_equilibrium import nash_equilibrium
@@ -24,13 +23,22 @@ def init_theta():
 def expected_feature_difference(ps, Sps, fi_sets, average_feature):
     new_feature = np.zeros(average_feature.shape, dtype='float32')
     for p, Sp, fi_set in zip(ps, Sps, fi_sets): #lenp * 1024
-        fi_set_p = fi_set[Sp]
+        try:
+            fi_set_p #= fi_set[Sp]
+        except:
+            import IPython
+            IPython.embed()
         new_feature += np.sum(p.reshape(p.shape[0], 1) * fi_set_p, axis=0)
     new_feature /= len(ps)
     return new_feature - average_feature
 
 def update_theta(theta, average_feature, Sps, ps, fi_sets, stepsize):
-    gradient = expected_feature_difference(ps, Sps, fi_sets, average_feature)
+    try:
+        difference = expected_feature_difference(ps, Sps, fi_sets, average_feature)
+        gradient = difference
+    except:
+        import IPython
+        IPython.embed()
     new_theta = theta - stepsize * gradient
     return new_theta
 
@@ -53,44 +61,37 @@ def produce_batch_size_ids(ids, batch_size):
 def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-def log_result(result):
-    data.append(result)
 
-def train_thread_bid(bid):
-    img_path, gt, fi_gt, Y = img_paths[bid], gts[bid], features_gt[bid], detslist[bid]
+def train_thread_bid(bid, img_path, gt, fi_gt, Y, fi_set):
     dets = [ det[:-1] for det in Y]
     dets = np.array(dets)
-            
-    #fi_set = extract_features(feature_type, theta_size, img_path, extractor, dets)
-    fi_set = feautres_det[bid]
-
     psi_set = np.array([ sum(theta * (fi - fi_gt)) for fi in fi_set ])
-    #print("start solving nash_equibrium for {} of bid {}...".format(img_path, bid))
     Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
-    return f, p, Sf, Sp, fi_set
+    return f, p, Sf, Sp
 
 def load_info(dataset_name, target_classname):
-    img_paths, _ = get_dataset_info(dataset_name)
+    img_paths, bboxs_gts = get_dataset_info(dataset_name)
     gt_info = pkl.load(open('../pkls/vot_'+dataset_name+'_gt.pkl', 'rb'))
     classes_gt = gt_info[0]
     features_gt = gt_info[1]
     features_gt_use = []
     img_paths_use = []
     bboxs_gt_use = []
-    for img_path, class_infos, feature_gt in zip(img_paths, classes_gt, features_gt):
-        for class_info, f_gt in zip(class_infos, feature_gt):
-            classname = class_info[0]
-            bbox_gt = class_info[1]
+    for img_path, class_info, feature_gt, bboxs_gt in zip(img_paths, classes_gt, features_gt, bboxs_gts):
+        for classname, f_gt, bbox_gt in zip(class_info, feature_gt, bboxs_gt):
+            bbox_gt = bbox_gt[1]
             if classname == target_classname:
                 #normalize feature
-                features_gt_use.append(f_gt / norm(f_gt))
-                img_paths_use.append(os.path.abspath(os.path.join('../data/JPEGImages', img_path)))
+                #features_gt_use.append(f_gt / norm(f_gt))
+                features_gt_use.append(f_gt)
+                img_paths_use.append(img_path)
                 bboxs_gt_use.append(bbox_gt)
                 #only store the first item for one image
                 break
     return features_gt_use, img_paths_use, bboxs_gt_use
 
 if __name__ == '__main__':
+    DEBUG = False
     np.random.seed(1)
 
     stepsize = 0.03
@@ -101,7 +102,7 @@ if __name__ == '__main__':
     target_classname = 'person'
     dataset_name = 'trainval'
     features_gt, img_paths, bboxs_gt = load_info(dataset_name, target_classname)
-     
+
     #processing average feature of training set
     if dataset_name == 'trainval':
         theta_size = 4096
@@ -113,31 +114,42 @@ if __name__ == '__main__':
     #use edge_boxes for bounding box proposals
     bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
     if os.path.exists(bbslist_pkl):
-        bbslist = pkl.load(open(bbslist_pkl, 'rb'))
+        _, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
     else:
-        bbslist = get_windows(img_paths_[dataset_name])
-        pkl.dump([img_paths_[dataset_name], bbslist], open(bbslist_pkl, 'wb'))
-
-    #top 250
-    #detslist = [ bbs[:bb_number_threshold] for bbs in bbslist ]
-    
-    #extract bbs feature by outter extractor
-    bbslist_feature_pkl = '../pkl/vot_features_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
-    features_det = pkl.load(open(bbslist_feature_pkl, 'rb'))
+        print('exists not {}'.format(bbslist_pkl))
     
     #init theta
+    global theta
     theta = init_theta()
+    saved_theta = [ theta ]
     
     #start training
     print("Starting loops for optimizing theta...")
     convergence = False
     iter_number = 0
-    
-    total_no = len(gts)
+    total_no = len(features_gt)
     ids = np.random.permutation(total_no)
-    batch_size = 32
+    if DEBUG:
+        batch_size = 1
+    else:
+        batch_size = 32
     get_ids = produce_batch_size_ids(ids, batch_size) 
-    saved_theta = []
+    
+    #extract bbs feature by outter extractor
+    pkl_dir = '../pkls/vot_features_{}_bbslist_{}'.format(dataset_name, target_classname)
+    if not os.path.exists(pkl_dir):
+        print('exists not {}'.format(pkl_dir))
+        exit(0)
+    bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
+    img_id_map = {}
+    if os.path.exists(bbslist_pkl):
+        bbs_imgpaths, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
+        for bbs_id, bbs_imgpaths in enumerate(bbs_imgpaths):
+            img_id = bbs_imgpaths.split('/')[-1].split('.')[0]
+            img_id_map[img_id] = bbs_id
+    else:
+        print('exists not {}'.format(bbslist_pkl))
+        exit(0)
     
     while not convergence:
         print("Loop {}...".format(iter_number))
@@ -146,14 +158,28 @@ if __name__ == '__main__':
         Sfs, Sps = [], []
         fi_sets = []
         batch_ids = next(get_ids)
-
-        pool = Pool(4, init_worker)
-        
+        if DEBUG:
+            pool = Pool(1, init_worker)
+        else:
+            pool = Pool(4, init_worker)
+        global data
         data = []
+        def log_result(result):
+            data.append(result)
         try:
             pids = []
-            for idx in range(batch_size):
-                pids.append(pool.apply_async(train_thread_bid, (idx, ), callback = log_result))
+            for idx in batch_ids:
+                #gt[y1, x1, y2, x2], bbs[y1, x2, y2, x2, score]
+                img_path, gt, fi_gt = img_paths[idx], bboxs_gt[idx], features_gt[idx] 
+                img_id = img_path.split('/')[-1].split('.')[0]
+                dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}_{}.pkl'.format(dataset_name, target_classname, img_id)) 
+                bbs_id = img_id_map[img_id]
+                Y = bbslist[bbs_id]
+                with open(dets_pkl, 'rb') as fdets:
+                    fi_set = pkl.load(fdets)
+                #fi_set = [ fi / norm(fi) for fi in fi_set ]
+                fi_sets.append(fi_set[:bb_number_threshold])
+                pids.append(pool.apply_async(train_thread_bid, (idx, img_path, gt, fi_gt, Y[:bb_number_threshold], fi_set[:bb_number_threshold]), callback = log_result))
             pool.close()
             pool.join()
         except KeyboardInterrupt:
@@ -165,7 +191,6 @@ if __name__ == '__main__':
         ps = [ d[1] for d in data ]
         Sfs = [ d[2] for d in data ]
         Sps = [ d[3] for d in data ]
-        fi_sets = [ d[4] for d in data ]
         print('*---- update theta ----*')
         theta = update_theta(theta, average_feature, Sps, ps, np.array(fi_sets), stepsize)
         saved_theta.append(theta)

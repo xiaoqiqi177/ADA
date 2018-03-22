@@ -24,18 +24,18 @@ def read_xml(xml_path):
     return filename, info
 
 def get_dataset_info(datasetname):
-    data_dir = '../../data'
-    data_dir = os.path.join('../../data', 'VOC2007-'+datasetname)
-    
-    xml_paths = glob.glob(os.path.join(data_dir, 'Annotations')+'/*.xml')
-    xml_paths.sort()
+    data_dir = '../data'
+    txtname = os.path.join(data_dir, 'ImageSets', 'Main', datasetname+'.txt') 
+    ftxt = open(txtname, 'r')
+    lines = ftxt.readlines()
+    xml_paths = [ os.path.join(data_dir, 'Annotations', line[:-1]+'.xml') for line in lines]
+     
     dataset_info = []
     img_paths = []
-
     for xml_path in xml_paths:
         imgpath, info = read_xml(xml_path)
         dataset_info.append(info)
-        img_paths.append(imgpath)
+        img_paths.append(os.path.join(data_dir, 'JPEGImages', imgpath))
     return img_paths, dataset_info
 
 def read_xml_oneclass(xml_path, target_classname):

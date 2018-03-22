@@ -40,7 +40,11 @@ def solve_p(G):
     for i in range(lenf):
         m.addConstr(quicksum(G[i, j] * p[j] for j in range(lenp)) >= v, name="extre{}".format(i))
     m.optimize()
-    values_p = np.array([ varx.x for varx in m.getVars()[:-1] ])
+    try:
+        values_p = np.array([ varx.x for varx in m.getVars()[:-1] ])
+    except:
+        import IPython
+        IPython.embed()
     return values_p, m.getVars()[-1].x
 
 if __name__ == '__main__':

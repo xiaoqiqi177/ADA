@@ -2,13 +2,19 @@
 # coding: utf-8
 import numpy as np
 from solve_lp_gurobi import solve_f, solve_p
+from losses import *
 
 def solveGame(dets, Sf, Sp, psi_set):
+    tol = 0.001
     G_loss = matrix_loss(dets, Sf, Sp)
     G_constraint = np.tile(psi_set[Sp], [len(Sf), 1])
     G = G_loss + G_constraint
     f, v1 = solve_f(G)
-    p, v2 = solve_p(G)
+    try:
+        p, v2 = solve_p(G)
+    except:
+        import IPython
+        IPython.embed()
     assert abs(v1 - v2) < tol
     return f, p, v1
     
@@ -53,8 +59,6 @@ def nash_equilibrium(imgpath, theta, dets, psi_set):
         #if abs(vf - vmin) > tol:
         if min_y_prime_id not in Sf:
             Sf.append(min_y_prime_id)
-        #print("vp: {} vf: {} vmin: {} vmax: {}".format(vp, vf, vmin, vmax))
-        #print("Sp: {} Sf: {}".format(len(Sp), len(Sf)))
         if lenSp == len(Sp) and lenSf == len(Sf):
         #if abs(vp - vmax) < tol and abs(vmax - vf) < tol and abs(vf - vmin) < tol:
             break
