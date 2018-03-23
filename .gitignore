@@ -4,5 +4,6 @@
 *.so
 *.o
 *.swap
+.*.swap
 .DS_Store
 __pycache__
