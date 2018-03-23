@@ -12,7 +12,8 @@ from preprocess import get_dataset_info, get_dataset_info_oneclass
 from losses import *
 from nash_equilibrium import nash_equilibrium
 
-tol = 1e-3
+tol = 2e-2
+#tol = 1e-3
 
 def init_theta():
     #can init with SVM?
@@ -26,6 +27,7 @@ def expected_feature_difference(ps, Sps, fi_sets, average_feature):
         try:
             fi_set_p = fi_set[Sp]
         except:
+            print('error in expected_feature_difference')
             import IPython
             IPython.embed()
         new_feature += np.sum(p.reshape(p.shape[0], 1) * fi_set_p, axis=0)
@@ -37,6 +39,7 @@ def update_theta(theta, average_feature, Sps, ps, fi_sets, stepsize):
         difference = expected_feature_difference(ps, Sps, fi_sets, average_feature)
         gradient = difference
     except:
+        print('error in update_theta')
         import IPython
         IPython.embed()
     new_theta = theta - stepsize * gradient
@@ -78,7 +81,7 @@ def train_thread_bid(bid, img_path, gt, fi_gt, Y, fi_set):
     Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
     return f, p, Sf, Sp
 
-def load_info(dataset_name, target_classname):
+def load_info_train(dataset_name, target_classname):
     img_paths, bboxs_gts = get_dataset_info(dataset_name)
     gt_info = pkl.load(open('../pkls/vot_'+dataset_name+'_gt.pkl', 'rb'))
     classes_gt = gt_info[0]
@@ -104,14 +107,14 @@ if __name__ == '__main__':
     DEBUG = False
     np.random.seed(1)
 
-    stepsize = 0.03
+    stepsize = 0.1
     bb_number_threshold = 250
     iou_threshold = 0.5
 
     #load trainval dataset of certain class
     target_classname = 'person'
     dataset_name = 'trainval'
-    features_gt, img_paths, bboxs_gt = load_info(dataset_name, target_classname)
+    features_gt, img_paths, bboxs_gt = load_info_train(dataset_name, target_classname)
 
     #processing average feature of training set
     if dataset_name == 'trainval':
@@ -171,7 +174,7 @@ if __name__ == '__main__':
         if DEBUG:
             pool = Pool(1, init_worker)
         else:
-            pool = Pool(4, init_worker)
+            pool = Pool(8, init_worker)
         global data
         data = []
         def log_result(result):
@@ -188,7 +191,10 @@ if __name__ == '__main__':
                 with open(dets_pkl, 'rb') as fdets:
                     fi_set = pkl.load(fdets)
                 fi_set = [ fi / norm(fi) for fi in fi_set ]
-                fi_sets.append(fi_set[:bb_number_threshold])
+                if len(fi_set) < bb_number_threshold:
+                    print(len(fi_set))
+                    continue
+                fi_sets.append(np.array(fi_set[:bb_number_threshold]))
                 pids.append(pool.apply_async(train_thread_bid, (idx, img_path, gt, fi_gt, Y[:bb_number_threshold], fi_set[:bb_number_threshold]), callback = log_result))
             pool.close()
             pool.join()
@@ -204,8 +210,6 @@ if __name__ == '__main__':
         print('*---- update theta ----*')
         theta = update_theta(theta, average_feature, Sps, ps, np.array(fi_sets), stepsize)
         saved_theta.append(theta)
-        import IPython
-        IPython.embed()
         #intermediate data periodically
         delta = test_convergence(theta, average_feature, Sps, ps, np.array(fi_sets))
         print('delta of Loop {}: {}'.format(iter_number, delta))
