@@ -13,7 +13,7 @@ from edge_boxes_with_python.edge_boxes import get_windows
 if __name__ == '__main__':
 
     dataset_name = 'trainval'
-    classname = 'person'
+    classname = 'car'
     img_paths, gts = get_dataset_info(dataset_name) 
     
     bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, classname)

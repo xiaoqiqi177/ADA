@@ -31,7 +31,8 @@ def get_windows(image_fnames, cmd='edge_boxes_wrapper'):
     fnames_cell = '{' + ','.join("'{}'".format(x) for x in image_fnames) + '}'
     command = "{}({}, '{}')".format(cmd, fnames_cell, output_filename)
 
-    toolboxpath = os.path.abspath('./edge_boxes_with_python/toolbox/')
+    #toolboxpath = os.path.abspath('./edge_boxes_with_python/toolbox/')
+    toolboxpath = os.path.abspath('./toolbox/')
     pathcommand1 = "addpath(genpath('{}'));".format(toolboxpath)
     pathcommand2 = "savepath;"
     # Execute command in MATLAB.
