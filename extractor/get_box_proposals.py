@@ -12,13 +12,11 @@ import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-name', default='trainval')
-    parser.add_argument('--classname', default='car')
     args = parser.parse_args()
     dataset_name = args.dataset_name
-    classname = args.classname
     img_paths, gts = get_dataset_info(dataset_name) 
     
-    bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, classname)
+    bbslist_pkl = '../pkls/vot_{}_bbslist.pkl'.format(dataset_name)
     if os.path.exists(bbslist_pkl):
         print('{} exists'.format(bbslist_pkl))
     else:

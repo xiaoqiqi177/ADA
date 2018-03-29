@@ -13,7 +13,7 @@ from preprocess import get_dataset_info, get_dataset_info_oneclass
 from losses import *
 from nash_equilibrium import nash_equilibrium
 import argparse
-
+from tqdm import tqdm
 def expected_feature_difference(ps, Sps, fi_sets, average_feature):
     new_feature = np.zeros(average_feature.shape, dtype='float32')
     for p, Sp, fi_set in zip(ps, Sps, fi_sets): #lenp * 1024
@@ -36,19 +36,22 @@ def test_thread_bid(bid, img_path, Y, fi_set):
         if p > maxp:
             maxp = p
             maxid = fid 
-    print('finish testing image {}'.format(img_path))
     return maxid
 
 
-def test_accuracy(detslist_test, results, gts_test, iou_threshold):
+def test_accuracy(detslist_test, results, gts_test, neglected_set, iou_threshold):
     total_no = len(detslist_test)
     right_no = 0
-    for dets, result, gt_list in zip(detslist_test, results, gts_test):
+    neglected_no = len(neglected_set)
+    for idx, (dets, result, gt_list) in enumerate(zip(detslist_test, results, gts_test)):
+        if idx in neglected_set:
+            continue
         for gt in gt_list:
             iou_loss = iou_loss1(dets[result], gt)
-            if iou_loss < iou_threshold:
+            if 1 - iou_loss > iou_threshold:
                 right_no += 1
                 break
+    total_no -= neglected_no
     accuracy = right_no * 1. / total_no
     return right_no, total_no, accuracy
 
@@ -100,7 +103,7 @@ if __name__ == '__main__':
     theta_size = 4096
     
     
-    bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
+    bbslist_pkl = '../pkls/vot_{}_bbslist.pkl'.format(dataset_name)
     if os.path.exists(bbslist_pkl):
         _, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
     else:
@@ -112,13 +115,12 @@ if __name__ == '__main__':
     else:
         saved_theta = pkl.load(open('saved_theta_{}.pkl'.format(target_classname), 'rb'))
     theta = saved_theta[-1]
-    
     #extract bbs feature by outter extractor
-    pkl_dir = '../pkls/vot_features_{}_bbslist_{}'.format(dataset_name, target_classname)
+    pkl_dir = '../pkls/vot_features_{}_bbslist'.format(dataset_name)
     if not os.path.exists(pkl_dir):
         print('exists not {}'.format(pkl_dir))
         exit(0)
-    bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
+    bbslist_pkl = '../pkls/vot_{}_bbslist.pkl'.format(dataset_name)
     img_id_map = {}
     if os.path.exists(bbslist_pkl):
         bbs_imgpaths, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
@@ -135,7 +137,7 @@ if __name__ == '__main__':
         total_no = 1
     else:
         total_no = len(img_paths)
-    
+
     if DEBUG:
         pool = Pool(1, init_worker)
     else:
@@ -147,10 +149,12 @@ if __name__ == '__main__':
     
     test_pids = []
     dets_list = []
-    for idx in range(total_no):
+    neglected_set = []
+
+    for idx in tqdm(range(total_no)):
         img_path, gt_list, fi_gt = img_paths[idx], bboxs_gt[idx], features_gt[idx] 
         img_id = img_path.split('/')[-1].split('.')[0]
-        dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}_{}.pkl'.format(dataset_name, target_classname, img_id)) 
+        dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}.pkl'.format(dataset_name, img_id)) 
         bbs_id = img_id_map[img_id]
         Y = bbslist[bbs_id]
         dets = [ det[:-1] for det in Y]
@@ -162,7 +166,8 @@ if __name__ == '__main__':
         
         if len(fi_set) < bb_number_threshold:
             print('bb proposals number of {} is {} < {}'.format(img_path, len(fi_set), bb_number_threshold))
-        
+            neglected_set.append(idx)
+
         test_pids.append(pool.apply_async(test_thread_bid, (idx, img_path, Y[:min(len(Y), bb_number_threshold)], fi_set[:min(len(fi_set), bb_number_threshold)]), callback = maxid_log))
     pool.close()
     pool.join()
@@ -179,6 +184,6 @@ if __name__ == '__main__':
             cv2.imshow('img', img)
             cv2.waitKey(0)
     
-    right_no, total_no, accuracy = test_accuracy(dets_list, maxids, bboxs_gt[:total_no], iou_threshold)
+    right_no, total_no, accuracy = test_accuracy(dets_list, maxids, bboxs_gt[:total_no], neglected_set, iou_threshold)
     print('Test Accuracy: {} / {}, {}'.format(right_no, total_no, accuracy))
 

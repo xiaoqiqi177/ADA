@@ -14,10 +14,8 @@ import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset-name', default='trainval')
-    parser.add_argument('--classname', default='car')
     args = parser.parse_args()
     dataset_name = args.dataset_name
-    classname = args.classname
     img_paths, gts = get_dataset_info(dataset_name) 
     
     bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, classname)
@@ -34,7 +32,7 @@ if __name__ == '__main__':
     
     #features_dets = []
     
-    pkl_dir = '../pkls/vot_features_{}_bbslist_{}'.format(dataset_name, classname)
+    pkl_dir = '../pkls/vot_features_{}_bbslist'.format(dataset_name)
     if not os.path.exists(pkl_dir):
         os.mkdir(pkl_dir)
     for img_path, bbs in zip(img_paths, bbslist):
@@ -51,5 +49,5 @@ if __name__ == '__main__':
         feature_dets = feature_dets.data.cpu().numpy()
         #features_dets.append(feature_dets)
         img_id = img_path.split('/')[-1].split('.')[0]
-        dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}_{}.pkl'.format(dataset_name, classname, img_id))
+        dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}.pkl'.format(dataset_name, img_id))
         pkl.dump(feature_dets, open(dets_pkl, 'wb'))

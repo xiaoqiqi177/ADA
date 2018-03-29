@@ -130,7 +130,7 @@ if __name__ == '__main__':
         average_feature /= len(img_paths)
 
     #use edge_boxes for bounding box proposals
-    bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
+    bbslist_pkl = '../pkls/vot_{}_bbslist.pkl'.format(dataset_name)
     if os.path.exists(bbslist_pkl):
         _, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
     else:
@@ -154,11 +154,11 @@ if __name__ == '__main__':
     get_ids = produce_batch_size_ids(ids, batch_size) 
     
     #extract bbs feature by outter extractor
-    pkl_dir = '../pkls/vot_features_{}_bbslist_{}'.format(dataset_name, target_classname)
+    pkl_dir = '../pkls/vot_features_{}_bbslist'.format(dataset_name)
     if not os.path.exists(pkl_dir):
         print('exists not {}'.format(pkl_dir))
         exit(0)
-    bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, target_classname)
+    bbslist_pkl = '../pkls/vot_{}_bbslist.pkl'.format(dataset_name)
     img_id_map = {}
     if os.path.exists(bbslist_pkl):
         bbs_imgpaths, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
@@ -190,7 +190,7 @@ if __name__ == '__main__':
                 #gt[y1, x1, y2, x2], bbs[y1, x2, y2, x2, score]
                 img_path, gt, fi_gt = img_paths[idx], bboxs_gt[idx], features_gt[idx] 
                 img_id = img_path.split('/')[-1].split('.')[0]
-                dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}_{}.pkl'.format(dataset_name, target_classname, img_id)) 
+                dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}.pkl'.format(dataset_name, img_id)) 
                 bbs_id = img_id_map[img_id]
                 Y = bbslist[bbs_id]
                 with open(dets_pkl, 'rb') as fdets:
