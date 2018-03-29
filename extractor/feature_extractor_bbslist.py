@@ -9,11 +9,15 @@ import sys
 sys.path.append('faster_rcnn_pytorch')
 from extract_feature_from_bb import extractfeatures, build_extractor
 from edge_boxes_with_python.edge_boxes import get_windows
+import argparse
 
 if __name__ == '__main__':
-
-    dataset_name = 'trainval'
-    classname = 'car'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset-name', default='trainval')
+    parser.add_argument('--classname', default='car')
+    args = parser.parse_args()
+    dataset_name = args.dataset_name
+    classname = args.classname
     img_paths, gts = get_dataset_info(dataset_name) 
     
     bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, classname)
@@ -34,7 +38,7 @@ if __name__ == '__main__':
     if not os.path.exists(pkl_dir):
         os.mkdir(pkl_dir)
     for img_path, bbs in zip(img_paths, bbslist):
-        img_path = os.path.join('../', img_path.split('/', 6)[-1])
+        #img_path = os.path.join('../', img_path.split('/', 6)[-1])
         dets = np.array([[0., bb[1], bb[0], bb[3], bb[2]] for bb in bbs], dtype='float32')
         DEBUG = False
         if DEBUG:

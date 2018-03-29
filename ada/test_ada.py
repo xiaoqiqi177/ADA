@@ -12,7 +12,7 @@ from solve_lp_gurobi import solve_f, solve_p
 from preprocess import get_dataset_info, get_dataset_info_oneclass
 from losses import *
 from nash_equilibrium import nash_equilibrium
-tol = 1e-3
+import argparse
 
 def expected_feature_difference(ps, Sps, fi_sets, average_feature):
     new_feature = np.zeros(average_feature.shape, dtype='float32')
@@ -79,15 +79,21 @@ def load_info_test(dataset_name, target_classname):
     return features_gt_use, img_paths_use, bboxs_gt_use
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset-name', type=str, default='trainval')
+    parser.add_argument('--classname', type=str, default='car')
+    parser.add_argument('--iou-threshold', type=float, default=0.5)
+    args = parser.parse_args()
+    dataset_name = args.dataset_name
+    target_classname = args.classname
+    iou_threshold = args.iou_threshold
+    bb_number_threshold = 250
+
+
+    #processing average feature of training set
     global DEBUG
     DEBUG = False
     np.random.seed(1)
-
-    bb_number_threshold = 250
-    iou_threshold = 0.5
-
-    target_classname = 'person'
-    dataset_name = 'test'
     
     features_gt, img_paths, bboxs_gt = load_info_test(dataset_name, target_classname)
 

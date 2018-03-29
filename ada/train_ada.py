@@ -11,9 +11,7 @@ import sys
 from preprocess import get_dataset_info, get_dataset_info_oneclass
 from losses import *
 from nash_equilibrium import nash_equilibrium
-
-tol = 2e-2
-#tol = 1e-3
+import argparse
 
 def init_theta():
     #can init with SVM?
@@ -103,17 +101,24 @@ def load_info_train(dataset_name, target_classname):
     return features_gt_use, img_paths_use, bboxs_gt_use
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset-name', type=str, default='trainval')
+    parser.add_argument('--classname', type=str, default='car')
+    parser.add_argument('--tol', type=float, default=1e-3)
+    parser.add_argument('--stepsize', type=float, default=0.1)
+    parser.add_argument('--iou-threshold', type=float, default=0.5)
+    args = parser.parse_args()
+    dataset_name = args.dataset_name
+    target_classname = args.classname
+    tol = args.tol
+    stepsize = args.stepsize
+    iou_threshold = args.iou_threshold
+    bb_number_threshold = 250
     global DEBUG
     DEBUG = False
     np.random.seed(1)
 
-    stepsize = 0.1
-    bb_number_threshold = 250
-    iou_threshold = 0.5
 
-    #load trainval dataset of certain class
-    target_classname = 'person'
-    dataset_name = 'trainval'
     features_gt, img_paths, bboxs_gt = load_info_train(dataset_name, target_classname)
 
     #processing average feature of training set
@@ -217,7 +222,5 @@ if __name__ == '__main__':
             convergence = True
         print("Optimization completed!")
     
-    import IPython
-    IPython.embed()
     #save saved theta
-    pkl.dump(saved_theta, open('saved_theta.pkl', 'wb'))
+    pkl.dump(saved_theta, open('saved_theta_{}.pkl'.format(target_classname), 'wb'))

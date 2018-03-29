@@ -25,7 +25,7 @@ if __name__ == '__main__':
         img_paths = [os.path.abspath(img_path) for img_path in img_paths]
         bbslist = []
         step = 0
-        gap = 200
+        gap = 1000
         img_no = len(img_paths)
         while step < img_no:
             try:
