@@ -110,7 +110,7 @@ if __name__ == '__main__':
     if DEBUG:
         saved_theta = pkl.load(open('saved_theta_debug.pkl', 'rb'))
     else:
-        saved_theta = pkl.load(open('saved_theta.pkl', 'rb'))
+        saved_theta = pkl.load(open('saved_theta_{}.pkl'.format(target_classname), 'rb'))
     theta = saved_theta[-1]
     
     #extract bbs feature by outter extractor
