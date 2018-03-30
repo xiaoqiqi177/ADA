@@ -1,7 +1,10 @@
 import os
 import torch
+import torch.utils.model_zoo as model_zoo
+from torch.nn.parameter import Parameter
 import numpy as np
 from datetime import datetime
+import pickle as pkl
 
 from faster_rcnn import network
 from faster_rcnn.faster_rcnn import FasterRCNN, RPN
@@ -35,7 +38,7 @@ def log_print(text, color=None, on_color=None, attrs=None):
 # ------------
 imdb_name = 'voc_2007_trainval'
 cfg_file = 'experiments/cfgs/faster_rcnn_end2end.yml'
-pretrained_model = 'data/pretrained_model/VGG_imagenet.npy'
+#pretrained_model = 'data/pretrained_model/VGG_imagenet.npy'
 output_dir = 'models/saved_model3'
 
 start_step = 0
@@ -71,7 +74,7 @@ data_layer = RoIDataLayer(roidb, imdb.num_classes)
 # load net
 net = FasterRCNN(classes=imdb.classes, debug=_DEBUG)
 network.weights_normal_init(net, dev=0.01)
-network.load_pretrained_npy(net, pretrained_model)
+#network.load_pretrained_npy(net, pretrained_model)
 # model_file = '/media/longc/Data/models/VGGnet_fast_rcnn_iter_70000.h5'
 # model_file = 'models/saved_model3/faster_rcnn_60000.h5'
 # network.load_net(model_file, net)
@@ -79,6 +82,26 @@ network.load_pretrained_npy(net, pretrained_model)
 # start_step = 60001
 # lr /= 10.
 # network.weights_normal_init([net.bbox_fc, net.score_fc, net.fc6, net.fc7], dev=0.01)
+
+if os.path.exists('pretrained_vgg.pkl'):
+    pret_net = pkl.load(open('pretrained_vgg.pkl','rb'))
+else:
+    pret_net = model_zoo.load_url('https://download.pytorch.org/models/vgg16-397923af.pth')
+    pkl.dump(pret_net, open('pretrained_vgg.pkl','wb'), pkl.HIGHEST_PROTOCOL)
+own_state = net.state_dict()
+for name, param in pret_net.items():
+    if name not in own_state:
+        continue
+    if isinstance(param, Parameter):
+        param = param.data
+    try:
+        own_state[name].copy_(param)
+        print('Copied {}'.format(name))
+    except:
+        print('Did not find {}'.format(name))
+        continue
+
+# Move model to GPU and set train mode
 
 net.cuda()
 net.train()
