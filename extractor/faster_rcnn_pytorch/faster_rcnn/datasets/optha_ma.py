@@ -32,25 +32,18 @@ from ..fast_rcnn.config import cfg
 # <<<< obsolete
 
 
-class pascal_voc(imdb):
-    def __init__(self, image_set, year, devkit_path=None):
-        imdb.__init__(self, 'voc_' + year + '_' + image_set)
-        self._year = year
+class optha_ma(imdb):
+    def __init__(self, image_set, devkit_path=None):
+        imdb.__init__(self, 'optha_ma_' + image_set)
         self._image_set = image_set
-        self._devkit_path = self._get_default_path() if devkit_path is None \
-            else devkit_path
-        self._data_path = os.path.join(self._devkit_path, 'VOC' + self._year)
+        self._devkit_path = self._get_default_path() if devkit_path is None\
+                else devkit_path
+        self._data_path = os.path.join(self._devkit_path, 'Optha_MA')
         self._classes = ('__background__',  # always index 0
-                         'aeroplane', 'bicycle', 'bird', 'boat',
-                         'bottle', 'bus', 'car', 'cat', 'chair',
-                         'cow', 'diningtable', 'dog', 'horse',
-                         'motorbike', 'person', 'pottedplant',
-                         'sheep', 'sofa', 'train', 'tvmonitor')
+                         'ma')
         self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))
         self._image_ext = '.jpg'
         self._image_index = self._load_image_set_index()
-        # Default to roidb handler
-        # self._roidb_handler = self.selective_search_roidb
         self._roidb_handler = self.gt_roidb
         self._salt = str(uuid.uuid4())
         self._comp_id = 'comp4'
@@ -69,6 +62,7 @@ class pascal_voc(imdb):
             'Path does not exist: {}'.format(self._data_path)
         import IPython
         IPython.embed()
+    
     def image_path_at(self, i):
         """
         Return the absolute path to image i in the image sequence.
@@ -103,7 +97,7 @@ class pascal_voc(imdb):
         """
         Return the default path where PASCAL VOC is expected to be installed.
         """
-        return os.path.join(cfg.DATA_DIR, 'VOCdevkit' + self._year)
+        return os.path.join(cfg.DATA_DIR, 'Optha_MA_devkit')
 
     def gt_roidb(self):
         """

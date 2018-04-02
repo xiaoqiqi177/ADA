@@ -13,7 +13,7 @@ import numpy as np
 
 from .pascal_voc import pascal_voc
 from .imagenet3d import imagenet3d
-
+from .optha_ma import optha_ma
 
 def _selective_search_IJCV_top_k(split, year, top_k):
     """Return an imdb that uses the top k proposals from the selective search
@@ -32,6 +32,9 @@ for year in ['2007', '2012', '0712']:
         __sets[name] = (lambda split=split, year=year:
                         pascal_voc(split, year))
 
+for split in ['train', 'val', 'trainval', 'test']:
+    name = 'optah_ma_{}'.format(split)
+    __sets[name] = optha_ma(split)
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""
