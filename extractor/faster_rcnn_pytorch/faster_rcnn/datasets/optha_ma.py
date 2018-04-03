@@ -33,12 +33,18 @@ from ..fast_rcnn.config import cfg
 
 
 class optha_ma(imdb):
-    def __init__(self, image_set, devkit_path=None):
-        imdb.__init__(self, 'optha_ma_' + image_set)
+    def __init__(self, image_set, ispart, devkit_path=None):
+        if ispart:
+            imdb.__init__(self, 'optha_ma_part_' + image_set)
+        else:
+            imdb.__init__(self, 'optha_ma_' + image_set)
         self._image_set = image_set
         self._devkit_path = self._get_default_path() if devkit_path is None\
                 else devkit_path
-        self._data_path = os.path.join(self._devkit_path, 'Optha_MA')
+        if ispart:
+            self._data_path = os.path.join(self._devkit_path, 'Optha_MA_part')
+        else:
+            self._data_path = os.path.join(self._devkit_path, 'Optha_MA')
         self._classes = ('__background__',  # always index 0
                          'ma')
         self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))
@@ -110,7 +116,7 @@ class optha_ma(imdb):
             print('{} gt roidb loaded from {}'.format(self.name, cache_file))
             return roidb
 
-        gt_roidb = [self._load_pascal_annotation(index)
+        gt_roidb = [self._load_optha_annotation(index)
                     for index in self.image_index]
         with open(cache_file, 'wb') as fid:
             pickle.dump(gt_roidb, fid, pickle.HIGHEST_PROTOCOL)
@@ -184,7 +190,7 @@ class optha_ma(imdb):
 
         return self.create_roidb_from_box_list(box_list, gt_roidb)
 
-    def _load_pascal_annotation(self, index):
+    def _load_optha_annotation(self, index):
         """
         Load image and bounding boxes info from XML file in the PASCAL VOC
         format.

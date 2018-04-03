@@ -141,6 +141,7 @@ def anchor_target_layer(rpn_cls_score, gt_boxes, gt_ishard, dontcare_areas, im_i
     overlaps = bbox_overlaps(
         np.ascontiguousarray(anchors, dtype=np.float),
         np.ascontiguousarray(gt_boxes, dtype=np.float))
+    
     argmax_overlaps = overlaps.argmax(axis=1)  # (A)
     max_overlaps = overlaps[np.arange(len(inds_inside)), argmax_overlaps]
     gt_argmax_overlaps = overlaps.argmax(axis=0)  # G

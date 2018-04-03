@@ -33,9 +33,13 @@ for year in ['2007', '2012', '0712']:
                         pascal_voc(split, year))
 
 for split in ['train', 'val', 'trainval', 'test']:
-    name = 'optha_ma_{}'.format(split)
-    __sets[name] = (lambda split=split:
-                    optha_ma(split))
+    for ispart in [True, False]:
+        if ispart is False:
+            name = 'optha_ma_{}'.format(split)
+        else:
+            name = 'optha_ma_{}_{}'.format('part', split)
+        __sets[name] = (lambda split=split, ispart=ispart:
+                    optha_ma(split, ispart))
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""

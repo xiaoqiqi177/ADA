@@ -68,7 +68,6 @@ class RPN(nn.Module):
         cfg_key = 'TRAIN' if self.training else 'TEST'
         rois = self.proposal_layer(rpn_cls_prob_reshape, rpn_bbox_pred, im_info,
                                    cfg_key, self._feat_stride, self.anchor_scales)
-
         # generating training labels and build the rpn loss
         if self.training:
             assert gt_boxes is not None
