@@ -39,7 +39,7 @@ def log_print(text, color=None, on_color=None, attrs=None):
 imdb_name = 'optha_ma_trainval'
 cfg_file = 'experiments/cfgs/faster_rcnn_end2end.yml'
 #pretrained_model = 'data/pretrained_model/VGG_imagenet.npy'
-output_dir = 'models/saved_model3'
+output_dir = 'models/saved_model_optha'
 
 start_step = 0
 end_step = 100000

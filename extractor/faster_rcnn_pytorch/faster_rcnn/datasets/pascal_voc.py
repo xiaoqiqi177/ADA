@@ -67,8 +67,7 @@ class pascal_voc(imdb):
             'VOCdevkit path does not exist: {}'.format(self._devkit_path)
         assert os.path.exists(self._data_path), \
             'Path does not exist: {}'.format(self._data_path)
-        import IPython
-        IPython.embed()
+    
     def image_path_at(self, i):
         """
         Return the absolute path to image i in the image sequence.

@@ -22,7 +22,7 @@ def build_xml(dir_name, pure_name_suffix, bboxes, _name):
         name.appendChild(textname)
         obj.appendChild(name)
     
-        box = doc.createElement("nbdbox")
+        box = doc.createElement("bndbox")
         obj.appendChild(box)
     
         xmin = doc.createElement("xmin")
@@ -106,9 +106,11 @@ for person_id, person in enumerate(MA_persons):
         #save info to pickle bboxes
         #saved_info.append([ori_img_path, bboxes])
         name_suffix = ori_img_path.split('/')[-1]
-        shutil.copy(ori_img_path, os.path.join(output_dir, 'JPEGImages', name_suffix))
-        
         pure_name_suffix = name_suffix.split('.')[0]
+        des_file = pure_name_suffix+'.jpg'
+        
+        shutil.copy(ori_img_path, os.path.join(output_dir, 'JPEGImages', des_file))
+        
         build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma')
         
         pure_name_suffix += '\n'

@@ -33,14 +33,16 @@ for year in ['2007', '2012', '0712']:
                         pascal_voc(split, year))
 
 for split in ['train', 'val', 'trainval', 'test']:
-    name = 'optah_ma_{}'.format(split)
-    __sets[name] = optha_ma(split)
+    name = 'optha_ma_{}'.format(split)
+    __sets[name] = (lambda split=split:
+                    optha_ma(split))
 
 def get_imdb(name):
     """Get an imdb (image database) by name."""
     if not name in __sets:
         # print (list_imdbs())
         raise KeyError('Unknown dataset: {}'.format(name))
+    
     return __sets[name]()
 
 
