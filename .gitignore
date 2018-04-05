@@ -7,4 +7,9 @@
 .*.swap
 .DS_Store
 logs
+*.png
+*.jpg
+*.JPG
+*.JPEG
+*.jpeg
 __pycache__
