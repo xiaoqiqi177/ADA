@@ -9,11 +9,15 @@ import glob
 import shutil
 import xml.dom.minidom as minidom
 
-def build_xml(dir_name, pure_name_suffix, bboxes, _name):
+def build_xml(dir_name, pure_name_suffix, bboxes, _name, filename):
     doc = minidom.Document()
     annotation = doc.createElement("annotation")
     doc.appendChild(annotation)
     fout = open(os.path.join(dir_name, pure_name_suffix+'.xml'), 'w')
+    filenameobj = doc.createElement('filename')
+    textfilename = doc.createTextNode(filename)
+    filenameobj.appendChild(textfilename)
+    annotation.appendChild(filenameobj)
     for bbox in bboxes:
         obj = doc.createElement("object")
     
@@ -115,7 +119,7 @@ for person_id, person in enumerate(MA_persons):
             des_file = pure_name_suffix+'.jpg'
             shutil.copy(ori_img_path, os.path.join(output_dir, 'JPEGImages', des_file))
         
-            build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma')
+            build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file)
         
             pure_name_suffix += '\n'
             if task == 'test':
@@ -149,8 +153,8 @@ for person_id, person in enumerate(MA_persons):
 
                     c_number = len(contours)
                     #skip empty image
-                    #if c_number == 0:
-                    #    continue
+                    if c_number == 0:
+                        continue
                     for c_id, contour in enumerate(contours):
                         x, y, w, h = cv2.boundingRect(contour)
                         x, y = x+1, y+1
@@ -182,7 +186,7 @@ for person_id, person in enumerate(MA_persons):
         
                     cv2.imwrite(os.path.join(output_dir, 'JPEGImages', des_file), new_img)
         
-                    build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma')
+                    build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file)
         
                     pure_name_suffix += '\n'
                     if task == 'test':

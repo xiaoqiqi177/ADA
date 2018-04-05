@@ -3,8 +3,11 @@ import numpy as np
 from faster_rcnn import network
 from faster_rcnn.faster_rcnn import FasterRCNN
 import os
-def build_extractor(model_file):
-    extractor = FasterRCNN()
+def build_extractor(model_file, classes=None):
+    if classes is None:
+        extractor = FasterRCNN()
+    else:
+        extractor = FasterRCNN(classes)
     extractor.cuda()
     extractor.eval()
     network.load_net(model_file, extractor)
