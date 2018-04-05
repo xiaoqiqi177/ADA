@@ -16,6 +16,7 @@ from faster_rcnn.datasets.factory import get_imdb
 from faster_rcnn.fast_rcnn.config import cfg, cfg_from_file
 from logger import Logger
 from tqdm import tqdm
+import sys
 
 try:
     from termcolor import cprint
@@ -37,11 +38,10 @@ def log_print(text, color=None, on_color=None, attrs=None):
 # hyper-parameters
 # ------------
 imdb_name = 'optha_ma_part_trainval'
-test_imdb_name = 'optha_ma_part_test'
 
 cfg_file = 'experiments/cfgs/optha.yml'
 #pretrained_model = 'data/pretrained_model/VGG_imagenet.npy'
-output_dir = 'models/saved_model_optha_part'
+output_dir = 'models/saved_model_optha_part'+sys.argv[1]
 
 start_step = 0
 end_step = 100000
@@ -61,17 +61,17 @@ if rand_seed is not None:
 
 # load config
 cfg_from_file(cfg_file)
-lr = cfg.TRAIN.LEARNING_RATE
+#lr = cfg.TRAIN.LEARNING_RATE
+lr = 0.0001
 momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
 disp_interval = cfg.TRAIN.DISPLAY
 log_interval = cfg.TRAIN.LOG_IMAGE_ITERS
-log_dir = cfg.LOG_DIR
+log_dir = cfg.LOG_DIR+'_'+sys.argv[1]
 exp_dir = cfg.EXP_DIR
 
 # load data
 imdb = get_imdb(imdb_name)
-test_imdb = get_imdb(test_imdb_name)
 rdl_roidb.prepare_roidb(imdb)
 roidb = imdb.roidb
 data_layer = RoIDataLayer(roidb, imdb.num_classes)
@@ -86,18 +86,20 @@ else:
     pret_net = model_zoo.load_url('https://download.pytorch.org/models/vgg16-397923af.pth')
     pkl.dump(pret_net, open('pretrained_vgg.pkl','wb'), pkl.HIGHEST_PROTOCOL)
 own_state = net.state_dict()
-for name, param in pret_net.items():
-    if name not in own_state:
-        continue
+
+pret_net_keys = list(pret_net.keys())
+own_state_keys = list(own_state.keys())
+
+for name_pret, name_own in zip(pret_net_keys[:26], own_state_keys[:26]):
+    param = pret_net[name_pret]
     if isinstance(param, Parameter):
         param = param.data
     try:
-        own_state[name].copy_(param)
-        print('Copied {}'.format(name))
+        own_state[name_own].copy_(param)
+        print('Copied {} to {}'.format(name_pret, name_own))
     except:
-        print('Did not find {}'.format(name))
+        print('Did not find {}'.format(name_pret))
         continue
-#fair at load imagenet weights because of name
 
 # Move model to GPU and set train mode
 net.cuda()
@@ -132,10 +134,6 @@ for step in range(start_step, end_step+1):
     dontcare_areas = blobs['dontcare_areas']
 
     # forward
-    if gt_boxes.max() > 40000:
-        print('>40000')
-        import IPython
-        IPython.embed()
     net(im_data, im_info, gt_boxes, gt_ishard, dontcare_areas)
     loss = net.loss + net.rpn.loss
 

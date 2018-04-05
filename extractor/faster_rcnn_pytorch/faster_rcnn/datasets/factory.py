@@ -32,7 +32,7 @@ for year in ['2007', '2012', '0712']:
         __sets[name] = (lambda split=split, year=year:
                         pascal_voc(split, year))
 
-for split in ['train', 'val', 'trainval', 'test']:
+for split in ['train', 'val', 'trainval', 'test', 'healthy']:
     for ispart in [True, False]:
         if ispart is False:
             name = 'optha_ma_{}'.format(split)
