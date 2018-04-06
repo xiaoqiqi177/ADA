@@ -18,6 +18,7 @@ from logger import Logger
 from tqdm import tqdm
 import sys
 import shutil
+import argparse
 
 try:
     from termcolor import cprint
@@ -38,11 +39,16 @@ def log_print(text, color=None, on_color=None, attrs=None):
 
 # hyper-parameters
 # ------------
-imdb_name = 'optha_ma_part_trainval'
+parser = argparse.ArgumentParser(description='train ma dataset')
+parser.add_argument('--datasetname', default='trainval', type=str)
+parser.add_argument('--ratio-name', default='325', type=str)
+
+args = parser.parse_args()
+
+imdb_name = 'optha_ma_part_'+args.datasetname+args.ratio_name
 
 cfg_file = 'experiments/cfgs/optha.yml'
-#pretrained_model = 'data/pretrained_model/VGG_imagenet.npy'
-output_dir = 'models/saved_model_optha_part'+sys.argv[1]
+output_dir = 'models/saved_model_optha_part'+args.ratio_name
 
 start_step = 0
 end_step = 100000
@@ -68,7 +74,7 @@ momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
 disp_interval = cfg.TRAIN.DISPLAY
 log_interval = cfg.TRAIN.LOG_IMAGE_ITERS
-log_dir = cfg.LOG_DIR+'_'+sys.argv[1]
+log_dir = cfg.LOG_DIR+'_'+args.ratio_name
 exp_dir = cfg.EXP_DIR
 
 # load data
@@ -112,9 +118,6 @@ optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=w
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
-
-#if os.path.exists('./data/cache'):
-#    shutil.rmtree('./data/cache')
 
 # tensorboad
 if use_tensorboard:

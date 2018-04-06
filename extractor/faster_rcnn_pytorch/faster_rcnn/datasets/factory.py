@@ -32,7 +32,15 @@ for year in ['2007', '2012', '0712']:
         __sets[name] = (lambda split=split, year=year:
                         pascal_voc(split, year))
 
-for split in ['train', 'val', 'trainval', 'test', 'healthy']:
+splitset = ['healthy']
+for trainratio in range(1, 9):
+    for testratio in range(1, 10-trainratio):
+        valratio = 10-trainratio-testratio
+        ratio_name = str(trainratio)+str(valratio)+str(testratio)
+        for datasetname in ['train', 'val', 'trainval', 'test']:
+            splitset.append(datasetname+ratio_name)
+
+for split in splitset:
     for ispart in [True, False]:
         if ispart is False:
             name = 'optha_ma_{}'.format(split)
