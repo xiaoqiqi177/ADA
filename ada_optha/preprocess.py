@@ -24,7 +24,7 @@ def read_xml(xml_path):
     return filename, info
 
 def get_dataset_info(datasetname):
-    data_dir = '../data'
+    data_dir = '../data-optha'
     txtname = os.path.join(data_dir, 'ImageSets', 'Main', datasetname+'.txt') 
     ftxt = open(txtname, 'r')
     lines = ftxt.readlines()

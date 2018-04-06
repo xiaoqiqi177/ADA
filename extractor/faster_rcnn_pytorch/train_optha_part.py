@@ -17,6 +17,7 @@ from faster_rcnn.fast_rcnn.config import cfg, cfg_from_file
 from logger import Logger
 from tqdm import tqdm
 import sys
+import shutil
 
 try:
     from termcolor import cprint
@@ -111,6 +112,9 @@ optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=w
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
+
+#if os.path.exists('./data/cache'):
+#    shutil.rmtree('./data/cache')
 
 # tensorboad
 if use_tensorboard:

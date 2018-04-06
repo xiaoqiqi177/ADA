@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+
 import cv2
 import os
 import numpy as np
@@ -8,6 +9,7 @@ import sys
 import glob
 import shutil
 import xml.dom.minidom as minidom
+import argparse
 
 def build_xml(dir_name, pure_name_suffix, bboxes, _name, filename):
     doc = minidom.Document()
@@ -59,36 +61,44 @@ MA_annotation_dir = os.path.join(dataset_dir, 'Annotation_MA/')
 healthy_person_dir = os.path.join(dataset_dir, 'healthy/')
 MA_persons = os.listdir(MA_person_dir)
 
-if len(sys.argv) == 1:
-    ispart = None
+
+parser = argparse.ArgumentParser(description='generate ma data')
+parser.add_argument('--task', default='ma', type=str, help='ma or healthy')
+parser.add_argument('--ispart', default=True, type=bool, help='if crop')
+parser.add_argument('--ifskip', default=True, type=bool, help='if skip patch/image without bounding boxes')
+parser.add_argument('--ifimage', default=False, type=bool, help='if need generate images and xmls')
+parser.add_argument('--ratio-name', default='325', type=str)
+parser.add_argument('--ifdebug', default=False, type=bool, help='if debug')
+
+args = parser.parse_args()
+if args.ispart is False:
     output_dir = './faster_rcnn_pytorch/data/Optha_MA_devkit/Optha_MA'
 else:
-    ispart = sys.argv[1]
     output_dir = './faster_rcnn_pytorch/data/Optha_MA_devkit/Optha_MA_part'
-train_ratio = 0.7
-val_ratio = 0.2
-test_ratio = 0.1
+
+#generate output_dir
+if os.path.exists(output_dir) is False:
+    os.mkdir(output_dir)
+    os.mkdir(os.path.join(output_dir, 'Annotations'))
+    os.mkdir(os.path.join(output_dir, 'ImageSets'))
+    os.mkdir(os.path.join(output_dir, 'ImageSets', 'Main'))
+    os.mkdir(os.path.join(output_dir, 'JPEGImages'))
 
 imageset_dir = os.path.join(output_dir, 'ImageSets')
-f_main_test = open(os.path.join(imageset_dir, 'Main', 'test.txt'), 'w')
-ma_main_test = open(os.path.join(imageset_dir, 'Main', 'ma_test.txt'), 'w')
-f_main_train = open(os.path.join(imageset_dir, 'Main', 'train.txt'), 'w')
-ma_main_train = open(os.path.join(imageset_dir, 'Main', 'ma_train.txt'), 'w')
-f_main_val = open(os.path.join(imageset_dir, 'Main', 'val.txt'), 'w')
-ma_main_val = open(os.path.join(imageset_dir, 'Main', 'ma_val.txt'), 'w')
-f_main_trainval = open(os.path.join(imageset_dir, 'Main', 'trainval.txt'), 'w')
-ma_main_trainval = open(os.path.join(imageset_dir, 'Main', 'ma_trainval.txt'), 'w')
 
-DEBUG = True
-saved_info = []
+files = {}
+for file_name in ['test', 'ma_test', 'train', 'ma_train', 'val', 'ma_val', 'trainval', 'ma_trainval']:
+    files[file_name+args.ratio_name] = open(os.path.join(imageset_dir, 'Main', '{}{}.txt'.format(file_name, args.ratio_name)), 'w')
+
 person_number = len(MA_persons)
+train_ratio, test_ratio = int(args.ratio_name[0])*0.1, int(args.ratio_name[-1])*0.1
 for person_id, person in enumerate(MA_persons):
     if person_id < person_number * train_ratio:
-        task = 'train'
-    elif person_id < person_number * (train_ratio + val_ratio):
-        task = 'val'
+        datasetname = 'train'
+    elif person_id < person_number * (1 - test_ratio):
+        datasetname = 'val'
     else:
-        task = 'test'
+        datasetname = 'test'
     ori_img_paths = os.listdir(os.path.join(MA_person_dir, person))
     ori_img_paths = [ os.path.join(MA_person_dir, person, ori_img_path) for ori_img_path in ori_img_paths ]
     annotation_paths = os.listdir(os.path.join(MA_annotation_dir, person))
@@ -97,43 +107,37 @@ for person_id, person in enumerate(MA_persons):
         ori_img = cv2.imread(ori_img_path)
         annotation = cv2.imread(annotation_path, 0)
         
-        if ispart is None:
+        if args.ispart is False:
             ret, thresh = cv2.threshold(annotation, 127, 255, 0)
             im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
             bboxes = []
             for c_id, contour in enumerate(contours):
                 x, y, w, h = cv2.boundingRect(contour)
                 x, y = x+1, y+1
-                if DEBUG:
+                if ifdebug:
                     cv2.drawContours(annotation, [contour], 0, (255, 0, 0), 2)
                     cv2.rectangle(annotation, (x, y), (x + w, y + h), (0, 255, 0), 2)
                     cv2.rectangle(ori_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
                     cv2.putText(ori_img, str(c_id), (x, y + 15), cv2.FONT_HERSHEY_PLAIN, 2., (0, 0, 255), thickness=1)
                 bboxes.append([x, y, x+w, y+h])
-            if DEBUG:
+            if ifdebug:
                 show_img = np.concatenate((ori_img, cv2.cvtColor(annotation, cv2.COLOR_GRAY2BGR)), axis=0)
                 #cv2.imwrite('img_temp.png', show_img)
 
             name_suffix = ori_img_path.split('/')[-1]
             pure_name_suffix = name_suffix.split('.')[0]
             des_file = pure_name_suffix+'.jpg'
-            shutil.copy(ori_img_path, os.path.join(output_dir, 'JPEGImages', des_file))
-        
-            build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file)
+            if args.ifimage:
+                shutil.copy(ori_img_path, os.path.join(output_dir, 'JPEGImages', des_file))
+                build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file)
         
             pure_name_suffix += '\n'
-            if task == 'test':
-                f_main_test.write(pure_name_suffix)
-                ma_main_test.write(pure_name_suffix)
-            else:
-                if task == 'train':
-                    f_main_train.write(pure_name_suffix)
-                    ma_main_train.write(pure_name_suffix)
-                else:
-                    f_main_val.write(pure_name_suffix)
-                    ma_main_val.write(pure_name_suffix)
-                f_main_trainval.write(pure_name_suffix)
-                ma_main_trainval.write(pure_name_suffix)
+            files[datasetname+args.ratio_name].write(pure_name_suffix)
+            files['ma_'+datasetname+args.ratio_name].write(pure_name_suffix)
+            if datasetname != 'test':
+                files['trainval'+args.ratio_name].write(pure_name_suffix)
+                files['ma_trainval'+args.ratio_name].write(pure_name_suffix)
+
         else:
             h_total, w_total = ori_img.shape[:2]
             h_num = w_num = 10
@@ -153,12 +157,13 @@ for person_id, person in enumerate(MA_persons):
 
                     c_number = len(contours)
                     #skip empty image
-                    if c_number == 0:
-                        continue
+                    if args.ifskip:
+                        if c_number == 0:
+                            continue
                     for c_id, contour in enumerate(contours):
                         x, y, w, h = cv2.boundingRect(contour)
                         x, y = x+1, y+1
-                        if DEBUG:
+                        if args.ifdebug:
                             center_x = x + w/2
                             center_y = y + h/2
                             w *= 3
@@ -184,20 +189,13 @@ for person_id, person in enumerate(MA_persons):
                     pure_name_suffix = name_suffix.split('.')[0]+'_{}_{}'.format(i, j)
                     des_file = pure_name_suffix+'.jpg'
         
-                    cv2.imwrite(os.path.join(output_dir, 'JPEGImages', des_file), new_img)
-        
-                    build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file)
+                    if args.ifimage:
+                        cv2.imwrite(os.path.join(output_dir, 'JPEGImages', des_file), new_img)
+                        build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file)
         
                     pure_name_suffix += '\n'
-                    if task == 'test':
-                        f_main_test.write(pure_name_suffix)
-                        ma_main_test.write(pure_name_suffix)
-                    else:
-                        if task == 'train':
-                            f_main_train.write(pure_name_suffix)
-                            ma_main_train.write(pure_name_suffix)
-                        else:
-                            f_main_val.write(pure_name_suffix)
-                            ma_main_val.write(pure_name_suffix)
-                        f_main_trainval.write(pure_name_suffix)
-                        ma_main_trainval.write(pure_name_suffix)
+                    files[datasetname+args.ratio_name].write(pure_name_suffix)
+                    files['ma_'+datasetname+args.ratio_name].write(pure_name_suffix)
+                    if datasetname != 'test':
+                        files['trainval'+args.ratio_name].write(pure_name_suffix)
+                        files['ma_trainval'+args.ratio_name].write(pure_name_suffix)
