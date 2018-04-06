@@ -77,7 +77,6 @@ def train_thread_bid(bid, img_path, gt, fi_gt, Y, fi_set):
         cv2.waitKey(0)
     psi_set = np.array([ sum(theta * (fi - fi_gt)) for fi in fi_set ])
     Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
-    return f, p, Sf, Sp
 
 def load_info_train(dataset_name, target_classname):
     img_paths, bboxs_gts = get_dataset_info(dataset_name)

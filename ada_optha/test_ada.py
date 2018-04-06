@@ -25,7 +25,7 @@ def expected_feature_difference(ps, Sps, fi_sets, average_feature):
 def init_worker():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-def test_thread_bid(bid, img_path, Y, fi_set):
+def test_thread_bid(bid, img_path, Y, fi_set, dets):
     dets = [ det[:-1] for det in Y]
     dets = np.array(dets)
     psi_set = np.array([ sum(theta * fi) for fi in fi_set ])
@@ -36,28 +36,28 @@ def test_thread_bid(bid, img_path, Y, fi_set):
         if p > maxp:
             maxp = p
             maxid = fid 
-    return maxid
+    return maxid, dets
 
 
-def test_accuracy(detslist_test, results, gts_test, neglected_set, iou_threshold):
+def test_accuracy(detslist_test, results, gts_test, iou_threshold):
     total_no = len(detslist_test)
     right_no = 0
-    neglected_no = len(neglected_set)
     for idx, (dets, result, gt_list) in enumerate(zip(detslist_test, results, gts_test)):
-        if idx in neglected_set:
-            continue
         for gt in gt_list:
-            iou_loss = iou_loss1(dets[result], gt)
+            try:
+                iou_loss = iou_loss1(dets[result], gt)
+            except:
+                import IPython
+                IPython.embed()
             if 1 - iou_loss > iou_threshold:
                 right_no += 1
                 break
-    total_no -= neglected_no
     accuracy = right_no * 1. / total_no
     return right_no, total_no, accuracy
 
 def load_info_test(dataset_name, target_classname):
     img_paths, bboxs_gts = get_dataset_info(dataset_name)
-    gt_info = pkl.load(open('../pkls/vot_'+dataset_name+'_gt.pkl', 'rb'))
+    gt_info = pkl.load(open('../pkls/ma_'+dataset_name+'_gt.pkl', 'rb'))
     classes_gt = gt_info[0]
     features_gt = gt_info[1]
     features_gt_use = []
@@ -90,8 +90,6 @@ if __name__ == '__main__':
     dataset_name = args.dataset_name
     target_classname = args.classname
     iou_threshold = args.iou_threshold
-    bb_number_threshold = 250
-
 
     #processing average feature of training set
     global DEBUG
@@ -103,7 +101,7 @@ if __name__ == '__main__':
     theta_size = 4096
     
     
-    bbslist_pkl = '../pkls/vot_{}_bbslist.pkl'.format(dataset_name)
+    bbslist_pkl = '../pkls/ma_{}_bbslist.pkl'.format(dataset_name)
     if os.path.exists(bbslist_pkl):
         _, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
     else:
@@ -116,16 +114,16 @@ if __name__ == '__main__':
         saved_theta = pkl.load(open('saved_theta_{}.pkl'.format(target_classname), 'rb'))
     theta = saved_theta[-1]
     #extract bbs feature by outter extractor
-    pkl_dir = '../pkls/vot_features_{}_bbslist'.format(dataset_name)
+    pkl_dir = '../pkls/ma_features_{}_bbslist'.format(dataset_name)
     if not os.path.exists(pkl_dir):
         print('exists not {}'.format(pkl_dir))
         exit(0)
-    bbslist_pkl = '../pkls/vot_{}_bbslist.pkl'.format(dataset_name)
+    bbslist_pkl = '../pkls/ma_{}_bbslist.pkl'.format(dataset_name)
     img_id_map = {}
     if os.path.exists(bbslist_pkl):
         bbs_imgpaths, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
-        for bbs_id, bbs_imgpaths in enumerate(bbs_imgpaths):
-            img_id = bbs_imgpaths.split('/')[-1].split('.')[0]
+        for bbs_id, bbs_imgpath in enumerate(bbs_imgpaths):
+            img_id = bbs_imgpath.split('/')[-1].split('.')[0]
             img_id_map[img_id] = bbs_id
     else:
         print('exists not {}'.format(bbslist_pkl))
@@ -143,35 +141,32 @@ if __name__ == '__main__':
     else:
         pool = Pool(8, init_worker)
     global maxids
-    maxids = [] 
+    test_results = [] 
     def maxid_log(result):
-        maxids.append(result)
+        test_results.append(result)
     
     test_pids = []
-    dets_list = []
-    neglected_set = []
+    #dets_list = []
 
     for idx in tqdm(range(total_no)):
         img_path, gt_list, fi_gt = img_paths[idx], bboxs_gt[idx], features_gt[idx] 
         img_id = img_path.split('/')[-1].split('.')[0]
-        dets_pkl = os.path.join(pkl_dir, 'vot_features_{}_bbslist_{}.pkl'.format(dataset_name, img_id)) 
+        dets_pkl = os.path.join(pkl_dir, 'ma_features_{}_bbslist_{}.pkl'.format(dataset_name, img_id)) 
         bbs_id = img_id_map[img_id]
         Y = bbslist[bbs_id]
         dets = [ det[:-1] for det in Y]
         dets = np.array(dets)
-        dets_list.append(dets)
+        #dets_list.append(dets)
         with open(dets_pkl, 'rb') as fdets:
             fi_set = pkl.load(fdets)
         fi_set = [ fi / norm(fi) for fi in fi_set ]
         
-        if len(fi_set) < bb_number_threshold:
-            print('bb proposals number of {} is {} < {}'.format(img_path, len(fi_set), bb_number_threshold))
-            neglected_set.append(idx)
-
-        test_pids.append(pool.apply_async(test_thread_bid, (idx, img_path, Y[:min(len(Y), bb_number_threshold)], fi_set[:min(len(fi_set), bb_number_threshold)]), callback = maxid_log))
+        test_pids.append(pool.apply_async(test_thread_bid, (idx, img_path, Y, fi_set, dets), callback = maxid_log))
     pool.close()
     pool.join()
     
+    maxids = [ d[0] for d in test_results ]
+    dets_list = [ d[1] for d in test_results ]
     if DEBUG:
         for idx in range(total_no):
             img_path, gt_list = img_paths[idx], bboxs_gt[idx]
@@ -184,6 +179,6 @@ if __name__ == '__main__':
             cv2.imshow('img', img)
             cv2.waitKey(0)
     
-    right_no, total_no, accuracy = test_accuracy(dets_list, maxids, bboxs_gt[:total_no], neglected_set, iou_threshold)
+    right_no, total_no, accuracy = test_accuracy(dets_list, maxids, bboxs_gt[:total_no], iou_threshold)
     print('Test Accuracy: {} / {}, {}'.format(right_no, total_no, accuracy))
 

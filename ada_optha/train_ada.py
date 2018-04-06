@@ -23,7 +23,7 @@ def expected_feature_difference(ps, Sps, fi_sets, average_feature):
     new_feature = np.zeros(average_feature.shape, dtype='float32')
     for p, Sp, fi_set in zip(ps, Sps, fi_sets): #lenp * 1024
         try:
-            fi_set_p = fi_set[Sp]
+            fi_set_p = np.array(fi_set)[Sp]
         except:
             print('error in expected_feature_difference')
             import IPython
@@ -78,7 +78,7 @@ def train_thread_bid(bid, img_path, gt, fi_gt, Y, fi_set):
     psi_set = np.array([ sum(theta * (fi - fi_gt)) for fi in fi_set ])
     Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
     assert max(Sp) < len(fi_set)
-    return f, p, Sf, Sp
+    return f, p, Sf, Sp, fi_set
 
 def load_info_train(dataset_name, target_classname):
     img_paths, bboxs_gts = get_dataset_info(dataset_name)
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         iter_number += 1
         fs, ps = [], []
         Sfs, Sps = [], []
-        fi_sets = []
+        #fi_sets = []
         batch_ids = next(get_ids)
         if DEBUG:
             pool = Pool(1, init_worker)
@@ -196,7 +196,7 @@ if __name__ == '__main__':
                 with open(dets_pkl, 'rb') as fdets:
                     fi_set = pkl.load(fdets)
                 fi_set = [ fi / norm(fi) for fi in fi_set ]
-                fi_sets.append(np.array(fi_set))
+                #fi_sets.append(np.array(fi_set))
                 pids.append(pool.apply_async(train_thread_bid, (idx, img_path, gt, fi_gt, Y, fi_set), callback = log_result))
             pool.close()
             pool.join()
@@ -209,9 +209,8 @@ if __name__ == '__main__':
         ps = [ d[1] for d in data ]
         Sfs = [ d[2] for d in data ]
         Sps = [ d[3] for d in data ]
+        fi_sets = [ d[4] for d in data ]
         print('*---- update theta ----*')
-        import IPython
-        IPython.embed()
         theta = update_theta(theta, average_feature, Sps, ps, fi_sets, stepsize)
         saved_theta.append(theta)
         #intermediate data periodically

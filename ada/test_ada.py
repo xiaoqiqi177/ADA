@@ -124,8 +124,8 @@ if __name__ == '__main__':
     img_id_map = {}
     if os.path.exists(bbslist_pkl):
         bbs_imgpaths, bbslist = pkl.load(open(bbslist_pkl, 'rb'))
-        for bbs_id, bbs_imgpaths in enumerate(bbs_imgpaths):
-            img_id = bbs_imgpaths.split('/')[-1].split('.')[0]
+        for bbs_id, bbs_imgpath in enumerate(bbs_imgpaths):
+            img_id = bbs_imgpath.split('/')[-1].split('.')[0]
             img_id_map[img_id] = bbs_id
     else:
         print('exists not {}'.format(bbslist_pkl))
