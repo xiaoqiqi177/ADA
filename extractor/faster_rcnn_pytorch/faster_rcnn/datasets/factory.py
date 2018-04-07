@@ -33,12 +33,13 @@ for year in ['2007', '2012', '0712']:
                         pascal_voc(split, year))
 
 splitset = ['healthy']
-for trainratio in range(1, 9):
+for trainratio in range(0, 9):
     for testratio in range(1, 10-trainratio):
         valratio = 10-trainratio-testratio
         ratio_name = str(trainratio)+str(valratio)+str(testratio)
         for datasetname in ['train', 'val', 'trainval', 'test']:
-            splitset.append(datasetname+ratio_name)
+            for iffull in ['', 'full']:
+                splitset.append(datasetname+ratio_name+iffull)
 
 for split in splitset:
     for ispart in [True, False]:

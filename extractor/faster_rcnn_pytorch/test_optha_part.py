@@ -17,9 +17,14 @@ from faster_rcnn.fast_rcnn.config import cfg, cfg_from_file, get_output_dir
 
 # hyper-parameters
 # ------------
-imdb_name = 'optha_ma_part_'+sys.argv[2]
 cfg_file = 'experiments/cfgs/optha.yml'
-trained_model = 'models/saved_model_optha_part'+sys.argv[1]+'/faster_rcnn_100000.h5'
+if sys.argv[1] == 'healthy':
+    imdb_name = 'optha_ma_part_'+sys.argv[1]
+    trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_100000.h5'
+else:
+    imdb_name = 'optha_ma_part_test'+sys.argv[1]
+    trained_model = 'models/saved_model_optha_part'+sys.argv[1][:-4]+'/faster_rcnn_100000.h5'
+    #trained_model = 'models/saved_model_optha_partdouble/faster_rcnn_100000.h5'
 
 rand_seed = 1024
 
@@ -89,13 +94,17 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
     all_boxes = [[[] for _ in range(num_images)]
                  for _ in range(imdb.num_classes)]
 
-    output_dir = get_output_dir(imdb, name)
-
+    if sys.argv[1] == 'healthy':
+        output_dir = get_output_dir(imdb, name)+'_'+sys.argv[2]
+    else:
+        output_dir = get_output_dir(imdb, name)
+    print(output_dir)
     # timers
     _t = {'im_detect': Timer(), 'misc': Timer()}
     det_file = os.path.join(output_dir, 'detections.pkl')
 
     ori_img_names = {}
+    img_hasbb = {}
     padding = 0
     for i in range(num_images):
         img_path = imdb.image_path_at(i)
@@ -128,6 +137,9 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
             cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])) \
                 .astype(np.float32, copy=False)
             keep = nms(cls_dets, cfg.TEST.NMS)
+            
+            if len(keep) > 0:
+                img_hasbb[ori_name] = True
             cls_dets = cls_dets[keep, :]
             
             index = imdb.image_index[i]
@@ -137,7 +149,6 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
             gt_dets = np.ones((len(gt_boxes), 5), dtype=np.float32)
             for g_id, gt_box in enumerate(gt_boxes):
                 gt_dets[g_id][:4] = gt_box
-            
             if vis:
                 im2show = vis_detections(im2show, imdb.classes[j], cls_dets, (255, 0, 0))
                 im2show = vis_detections(im2show, imdb.classes[j], gt_dets, (0, 255, 0))
@@ -163,6 +174,7 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
             ori_img_names[ori_name][h_id*(h_patch+padding):h_id*(h_patch+padding)+h_patch, w_id*(w_patch+padding):w_id*(w_patch+padding)+w_patch, :] = im2show.copy()
     for ori_name, showimg in ori_img_names.items():
         cv2.imwrite(os.path.join(output_dir, ori_name+'_output.png'), showimg)
+    print('image level accuray: {} / {} = {}'.format(len(img_hasbb), len(ori_img_names), len(img_hasbb) / len(ori_img_names)))
 
 if __name__ == '__main__':
     # load data
@@ -172,7 +184,7 @@ if __name__ == '__main__':
     # load net
     net = FasterRCNN(classes=imdb.classes, debug=False)
     network.load_net(trained_model, net)
-    print('load model successfully!')
+    print('load model successfully!'+trained_model)
 
     net.cuda()
     net.eval()

@@ -38,11 +38,11 @@ if __name__ == '__main__':
     for img_path, bbs in zip(img_paths, bbslist):
         #img_path = os.path.join('../', img_path.split('/', 6)[-1])
         dets = np.array([[0., bb[1], bb[0], bb[3], bb[2]] for bb in bbs], dtype='float32')
-        DEBUG = False
+        DEBUG = True
         if DEBUG:
             img = cv2.imread(img_path)
             for det in dets[:30]:
-                cv2.rectangle(img, (int(det[1]), int(det[2])), (int(det[3]), int(det[4])), (0, 204, 0), 2)
+                cv2.rectangle(img, (int(det[1]), int(det[2])), (int(det[3]), int(det[4])), (0, 204, 0), 1)
             cv2.imshow('img', img)
             cv2.waitKey(0)
         feature_dets = extractfeatures(img_path, extractor, dets)

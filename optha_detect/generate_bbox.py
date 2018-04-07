@@ -64,11 +64,11 @@ MA_persons = os.listdir(MA_person_dir)
 
 parser = argparse.ArgumentParser(description='generate ma data')
 parser.add_argument('--task', default='ma', type=str, help='ma or healthy')
-parser.add_argument('--ispart', default=True, type=bool, help='if crop')
-parser.add_argument('--ifskip', default=True, type=bool, help='if skip patch/image without bounding boxes')
-parser.add_argument('--ifimage', default=False, type=bool, help='if need generate images and xmls')
+parser.add_argument('--ispart', default=False, action='store_true', help='if crop')
+parser.add_argument('--ifskip', default=False, action='store_true', help='if skip patch/image without bounding boxes')
+parser.add_argument('--ifimage', default=False, action='store_true', help='if need generate images and xmls')
 parser.add_argument('--ratio-name', default='325', type=str)
-parser.add_argument('--ifdebug', default=False, type=bool, help='if debug')
+parser.add_argument('--ifdebug', default=False, action='store_true', help='if debug')
 
 args = parser.parse_args()
 if args.ispart is False:
@@ -88,7 +88,10 @@ imageset_dir = os.path.join(output_dir, 'ImageSets')
 
 files = {}
 for file_name in ['test', 'ma_test', 'train', 'ma_train', 'val', 'ma_val', 'trainval', 'ma_trainval']:
-    files[file_name+args.ratio_name] = open(os.path.join(imageset_dir, 'Main', '{}{}.txt'.format(file_name, args.ratio_name)), 'w')
+    if args.ifskip is True:
+        files[file_name+args.ratio_name] = open(os.path.join(imageset_dir, 'Main', '{}{}.txt'.format(file_name, args.ratio_name)), 'w')
+    else:
+        files[file_name+args.ratio_name] = open(os.path.join(imageset_dir, 'Main', '{}{}full.txt'.format(file_name, args.ratio_name)), 'w')
 
 person_number = len(MA_persons)
 train_ratio, test_ratio = int(args.ratio_name[0])*0.1, int(args.ratio_name[-1])*0.1
