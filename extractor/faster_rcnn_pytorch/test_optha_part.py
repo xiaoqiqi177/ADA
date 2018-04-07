@@ -22,9 +22,10 @@ if sys.argv[1] == 'healthy':
     imdb_name = 'optha_ma_part_'+sys.argv[1]
     trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_100000.h5'
 else:
-    imdb_name = 'optha_ma_part_test'+sys.argv[1]
-    trained_model = 'models/saved_model_optha_part'+sys.argv[1][:-4]+'/faster_rcnn_100000.h5'
-    #trained_model = 'models/saved_model_optha_partdouble/faster_rcnn_100000.h5'
+    imdb_name = 'optha_ma_part_trainval'+sys.argv[1]
+    #trained_model = 'models/saved_model_optha_part'+sys.argv[1][:-4]+'/faster_rcnn_100000.h5'
+    #trained_model = 'models/saved_model_optha_part'+sys.argv[1]+'/faster_rcnn_100000.h5'
+    trained_model = 'models/saved_model_optha_partdouble/faster_rcnn_100000.h5'
 
 rand_seed = 1024
 
@@ -129,6 +130,8 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
             # im2show = np.copy(im[:, :, (2, 1, 0)])
             im2show = np.copy(im)
 
+        import IPython
+        IPython.embed()
         # skip j = 0, because it's the background class
         for j in range(1, imdb.num_classes):
             inds = np.where(scores[:, j] > thresh)[0]
