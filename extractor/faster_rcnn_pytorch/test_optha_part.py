@@ -22,10 +22,12 @@ if sys.argv[1] == 'healthy':
     imdb_name = 'optha_ma_part_'+sys.argv[1]
     trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_100000.h5'
 else:
-    imdb_name = 'optha_ma_part_trainval'+sys.argv[1]
-    #trained_model = 'models/saved_model_optha_part'+sys.argv[1][:-4]+'/faster_rcnn_100000.h5'
-    #trained_model = 'models/saved_model_optha_part'+sys.argv[1]+'/faster_rcnn_100000.h5'
-    trained_model = 'models/saved_model_optha_partdouble/faster_rcnn_100000.h5'
+    imdb_name = 'optha_ma_part_test'+sys.argv[1]
+    if imdb_name.endswith('full'):
+        trained_model = 'models/saved_model_optha_part'+sys.argv[1][:-4]+'/faster_rcnn_70000.h5'
+    else:
+        #trained_model = 'models/saved_model_optha_part'+sys.argv[1]+'/faster_rcnn_100000.h5'
+        trained_model = 'models/saved_model_optha_part'+sys.argv[1]+'/faster_rcnn_10000.h5'
 
 rand_seed = 1024
 
@@ -35,9 +37,6 @@ thresh = 0.05
 vis = True
 
 # ------------
-
-if rand_seed is not None:
-    np.random.seed(rand_seed)
 
 if rand_seed is not None:
     np.random.seed(rand_seed)
@@ -69,7 +68,6 @@ def im_detect(net, image):
     im_info = np.array(
         [[im_data.shape[1], im_data.shape[2], im_scales[0]]],
         dtype=np.float32)
-
     cls_prob, bbox_pred, rois = net(im_data, im_info)
     scores = cls_prob.data.cpu().numpy()
     boxes = rois.data.cpu().numpy()[:, 1:5] / im_info[0][2]
@@ -85,7 +83,6 @@ def im_detect(net, image):
 
     return scores, pred_boxes
 
-
 def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
@@ -97,15 +94,15 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
 
     if sys.argv[1] == 'healthy':
         output_dir = get_output_dir(imdb, name)+'_'+sys.argv[2]
+        if os.path.exists(output_dir) is False:
+            os.mkdir(output_dir)
     else:
         output_dir = get_output_dir(imdb, name)
     print(output_dir)
     # timers
     _t = {'im_detect': Timer(), 'misc': Timer()}
-    det_file = os.path.join(output_dir, 'detections.pkl')
 
     ori_img_names = {}
-    img_hasbb = {}
     padding = 0
     for i in range(num_images):
         img_path = imdb.image_path_at(i)
@@ -130,8 +127,6 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
             # im2show = np.copy(im[:, :, (2, 1, 0)])
             im2show = np.copy(im)
 
-        import IPython
-        IPython.embed()
         # skip j = 0, because it's the background class
         for j in range(1, imdb.num_classes):
             inds = np.where(scores[:, j] > thresh)[0]
@@ -141,8 +136,6 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
                 .astype(np.float32, copy=False)
             keep = nms(cls_dets, cfg.TEST.NMS)
             
-            if len(keep) > 0:
-                img_hasbb[ori_name] = True
             cls_dets = cls_dets[keep, :]
             
             index = imdb.image_index[i]
@@ -177,7 +170,6 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
             ori_img_names[ori_name][h_id*(h_patch+padding):h_id*(h_patch+padding)+h_patch, w_id*(w_patch+padding):w_id*(w_patch+padding)+w_patch, :] = im2show.copy()
     for ori_name, showimg in ori_img_names.items():
         cv2.imwrite(os.path.join(output_dir, ori_name+'_output.png'), showimg)
-    print('image level accuray: {} / {} = {}'.format(len(img_hasbb), len(ori_img_names), len(img_hasbb) / len(ori_img_names)))
 
 if __name__ == '__main__':
     # load data
@@ -187,10 +179,9 @@ if __name__ == '__main__':
     # load net
     net = FasterRCNN(classes=imdb.classes, debug=False)
     network.load_net(trained_model, net)
-    print('load model successfully!'+trained_model)
+    print('load model {} successfully!'.format(trained_model))
 
     net.cuda()
     net.eval()
-
     # evaluation
     test_net(save_name, net, imdb, max_per_image, thresh=thresh, vis=vis)

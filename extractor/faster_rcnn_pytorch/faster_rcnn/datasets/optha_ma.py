@@ -133,7 +133,6 @@ class optha_ma(imdb):
         """
         cache_file = os.path.join(self.cache_path,
                                   self.name + '_selective_search_roidb.pkl')
-
         if os.path.exists(cache_file):
             with open(cache_file, 'rb') as fid:
                 roidb = pickle.load(fid)
@@ -155,6 +154,8 @@ class optha_ma(imdb):
 
     def rpn_roidb(self):
         #if int(self._year) == 2007 or self._image_set != 'test':
+        import IPython
+        IPython.embed()
         if self._image_set.startswith('test') is False:
             gt_roidb = self.gt_roidb()
             rpn_roidb = self._load_rpn_roidb(gt_roidb)

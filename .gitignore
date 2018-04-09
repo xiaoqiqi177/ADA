@@ -6,7 +6,9 @@
 *.swap
 .*.swap
 .DS_Store
+models
 logs
+data
 *.png
 *.jpg
 *.JPG

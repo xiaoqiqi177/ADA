@@ -166,21 +166,21 @@ for person_id, person in enumerate(MA_persons):
                     for c_id, contour in enumerate(contours):
                         x, y, w, h = cv2.boundingRect(contour)
                         x, y = x+1, y+1
+                        center_x = x + w/2
+                        center_y = y + h/2
+                        w *= 3
+                        h *= 3
+                        x = int(max(center_x - w/2, 1))
+                        y = int(max(center_y - h/2, 1))
+                        w = int(min(w, new_img.shape[1]-x))
+                        h = int(min(h, new_img.shape[0]-y))
                         if args.ifdebug:
-                            center_x = x + w/2
-                            center_y = y + h/2
-                            w *= 3
-                            h *= 3
-                            x = int(max(center_x - w/2, 1))
-                            y = int(max(center_y - h/2, 1))
-                            w = int(min(w, new_img.shape[1]-x))
-                            h = int(min(h, new_img.shape[0]-y))
                             cv2.drawContours(new_annotation, [contour], 0, (255, 0, 0), 1)
                             cv2.rectangle(new_annotation, (x, y), (x + w, y + h), (0, 255, 0), 1)
                             cv2.rectangle(new_img, (x, y), (x + w, y + h), (0, 255, 0), 1)
                             #cv2.putText(new_img, str(c_id), (x, y + 15), cv2.FONT_HERSHEY_PLAIN, 1., (0, 0, 255), thickness=1)
                         bboxes.append([x, y, x+w, y+h])
-                    if False:
+                    if args.ifdebug:
                         show_img = np.concatenate((new_img, cv2.cvtColor(new_annotation, cv2.COLOR_GRAY2BGR)), axis=0)
                         cv2.imshow('show_img', show_img)
                         #cv2.imshow('new_img', new_img)
@@ -195,7 +195,6 @@ for person_id, person in enumerate(MA_persons):
                     if args.ifimage:
                         cv2.imwrite(os.path.join(output_dir, 'JPEGImages', des_file), new_img)
                         build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file)
-        
                     pure_name_suffix += '\n'
                     files[datasetname+args.ratio_name].write(pure_name_suffix)
                     files['ma_'+datasetname+args.ratio_name].write(pure_name_suffix)
