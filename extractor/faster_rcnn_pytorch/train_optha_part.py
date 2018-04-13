@@ -42,17 +42,20 @@ def log_print(text, color=None, on_color=None, attrs=None):
 parser = argparse.ArgumentParser(description='train ma dataset')
 parser.add_argument('--datasetname', default='trainval', type=str)
 parser.add_argument('--ratio-name', default='325', type=str)
+parser.add_argument('--resume', default='', type=str, metavar='PATH')
+parser.add_argument('--task-name', default='task0', type=str)
 
 args = parser.parse_args()
 
 imdb_name = 'optha_ma_part_'+args.datasetname+args.ratio_name
 
 cfg_file = 'experiments/cfgs/optha.yml'
-output_dir = 'models/saved_model_optha_part'+args.ratio_name
+output_dir = 'models/saved_model_optha_part_'+args.ratio_name+'_'+args.task_name
 
 start_step = 0
 end_step = 100000
-lr_decay_steps = {60000, 80000}
+#lr_decay_steps = {60000, 80000}
+lr_decay_steps = {}
 lr_decay = 1./10
 
 rand_seed = 1024
@@ -74,7 +77,8 @@ momentum = cfg.TRAIN.MOMENTUM
 weight_decay = cfg.TRAIN.WEIGHT_DECAY
 disp_interval = cfg.TRAIN.DISPLAY
 log_interval = cfg.TRAIN.LOG_IMAGE_ITERS
-log_dir = cfg.LOG_DIR+'_'+args.ratio_name
+#log_dir = cfg.LOG_DIR+'_'+args.ratio_name
+log_dir = cfg.LOG_DIR+'_'+args.ratio_name+'_'+args.task_name
 exp_dir = cfg.EXP_DIR
 
 # load data
@@ -97,16 +101,17 @@ own_state = net.state_dict()
 pret_net_keys = list(pret_net.keys())
 own_state_keys = list(own_state.keys())
 
-for name_pret, name_own in zip(pret_net_keys[:26], own_state_keys[:26]):
-    param = pret_net[name_pret]
-    if isinstance(param, Parameter):
-        param = param.data
-    try:
-        own_state[name_own].copy_(param)
-        print('Copied {} to {}'.format(name_pret, name_own))
-    except:
-        print('Did not find {}'.format(name_pret))
-        continue
+if not args.resume:
+    for name_pret, name_own in zip(pret_net_keys[:26], own_state_keys[:26]):
+        param = pret_net[name_pret]
+        if isinstance(param, Parameter):
+            param = param.data
+        try:
+            own_state[name_own].copy_(param)
+            print('Copied {} to {}'.format(name_pret, name_own))
+        except:
+            print('Did not find {}'.format(name_pret))
+            continue
 
 # Move model to GPU and set train mode
 net.cuda()
@@ -115,6 +120,17 @@ net.train()
 params = list(net.parameters())
 # optimizer = torch.optim.Adam(params[-8:], lr=lr)
 optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
+
+if args.resume:
+    if os.path.isfile(args.resume):
+        print("=> loading checkout '{}'".format(args.resume))
+        checkpoint = torch.load(args.resume)
+        args.start_step = checkpoint['step']
+        net.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        print("=> loaded checkpoint '{}' (step {})".format(args.resume, checkpoint['step']))
+    else:
+        print("=> no checkpoint found at '{}'".format(args.resume))
 
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
@@ -131,7 +147,6 @@ re_cnt = False
 t = Timer()
 t.tic()
 for step in range(start_step, end_step+1):
-
     # get one batch
     blobs = data_layer.forward()
     im_data = blobs['data']
@@ -188,9 +203,17 @@ for step in range(start_step, end_step+1):
             #logger.scalar_summary(losses, step=step)
 
     if (step % 10000 == 0) and step > 0:
-        save_name = os.path.join(output_dir, 'faster_rcnn_{}.h5'.format(step))
-        network.save_net(save_name, net)
-        print('save model: {}'.format(save_name))
+        #save_name = os.path.join(output_dir, 'faster_rcnn_{}.h5'.format(step))
+        save_name = os.path.join(output_dir, 'faster_rcnn_{}.pth.tar'.format(step))
+        state = {
+            'step': step,
+            'state_dict': net.state_dict(),
+            'optimizer': optimizer.state_dict()
+            }
+        torch.save(state, save_name)
+        #network.save_net(save_name, net)
+        #print('save model: {}'.format(save_name))
+    
     if step in lr_decay_steps:
         lr *= lr_decay
         optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)

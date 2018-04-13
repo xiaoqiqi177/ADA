@@ -23,17 +23,14 @@ if sys.argv[1] == 'healthy':
     trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_100000.h5'
 else:
     imdb_name = 'optha_ma_part_test'+sys.argv[1]
-    if imdb_name.endswith('full'):
-        trained_model = 'models/saved_model_optha_part'+sys.argv[1][:-4]+'/faster_rcnn_70000.h5'
-    else:
-        #trained_model = 'models/saved_model_optha_part'+sys.argv[1]+'/faster_rcnn_100000.h5'
-        trained_model = 'models/saved_model_optha_part'+sys.argv[1]+'/faster_rcnn_10000.h5'
+    #trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_10000.h5'
+    trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_20000.pth.tar'
 
 rand_seed = 1024
 
 save_name = 'faster_rcnn_100000'
 max_per_image = 300
-thresh = 0.05
+#thresh = 0.05
 vis = True
 
 # ------------
@@ -83,7 +80,7 @@ def im_detect(net, image):
 
     return scores, pred_boxes
 
-def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
+def test_net(name, net, imdb, max_per_image=300, thresh=0.9, vis=False):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
     # all detections are collected into:
@@ -94,10 +91,10 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.05, vis=False):
 
     if sys.argv[1] == 'healthy':
         output_dir = get_output_dir(imdb, name)+'_'+sys.argv[2]
-        if os.path.exists(output_dir) is False:
-            os.mkdir(output_dir)
     else:
-        output_dir = get_output_dir(imdb, name)
+        output_dir = get_output_dir(imdb, name)+sys.argv[2]
+    if os.path.exists(output_dir) is False:
+        os.mkdir(output_dir)
     print(output_dir)
     # timers
     _t = {'im_detect': Timer(), 'misc': Timer()}
@@ -178,10 +175,12 @@ if __name__ == '__main__':
 
     # load net
     net = FasterRCNN(classes=imdb.classes, debug=False)
-    network.load_net(trained_model, net)
+    #network.load_net(trained_model, net)
+    model = torch.load(trained_model)
+    net.load_state_dict(model['state_dict'])
     print('load model {} successfully!'.format(trained_model))
 
     net.cuda()
     net.eval()
     # evaluation
-    test_net(save_name, net, imdb, max_per_image, thresh=thresh, vis=vis)
+    test_net(save_name, net, imdb, max_per_image, thresh=0.5, vis=vis)

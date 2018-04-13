@@ -30,7 +30,7 @@ def nms_detections(pred_boxes, scores, nms_thresh, inds=None):
 
 class RPN(nn.Module):
     _feat_stride = [16, ]
-    anchor_scales = [8, 16, 32]
+    anchor_scales = [2, 4, 8]
 
     def __init__(self):
         super(RPN, self).__init__()
