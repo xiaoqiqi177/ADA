@@ -44,6 +44,7 @@ parser.add_argument('--datasetname', default='trainval', type=str)
 parser.add_argument('--ratio-name', default='325', type=str)
 parser.add_argument('--resume', default='', type=str, metavar='PATH')
 parser.add_argument('--task-name', default='ma_double', type=str)
+parser.add_argument('--start-step', default=0, type=int)
 
 args = parser.parse_args()
 
@@ -56,8 +57,8 @@ imdb_task_name = args.task_name
 cfg_file = 'experiments/cfgs/optha.yml'
 output_dir = 'models/saved_model_optha_part_'+args.ratio_name+'_'+args.task_name
 
-start_step = 0
-end_step = 100000
+start_step = args.start_step
+end_step = start_step + 100000
 #lr_decay_steps = {60000, 80000}
 lr_decay_steps = {}
 lr_decay = 1./10
@@ -130,7 +131,8 @@ if args.resume:
     if os.path.isfile(args.resume):
         print("=> loading checkout '{}'".format(args.resume))
         checkpoint = torch.load(args.resume)
-        args.start_step = checkpoint['step']
+        start_step = checkpoint['step']
+        end_step = start_step + 100000
         net.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         print("=> loaded checkpoint '{}' (step {})".format(args.resume, checkpoint['step']))

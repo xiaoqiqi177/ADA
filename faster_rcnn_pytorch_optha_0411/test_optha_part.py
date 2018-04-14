@@ -23,7 +23,7 @@ if sys.argv[1] == 'healthy':
     trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_100000.h5'
 else:
     imdb_name = 'optha_ma_part_test'+sys.argv[1]
-    trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_10000.pth.tar'
+    trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_100000.pth.tar'
 
 rand_seed = 1024
 

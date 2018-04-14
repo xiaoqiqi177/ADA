@@ -11,7 +11,7 @@ import shutil
 import xml.dom.minidom as minidom
 import argparse
 
-def build_xml(dir_name, pure_name_suffix, bboxes, _name, filename, fake_bbox, iffake):
+def build_xml(dir_name, pure_name_suffix, bboxes, _name, filename, fake_bbox):
     doc = minidom.Document()
     annotation = doc.createElement("annotation")
     doc.appendChild(annotation)
@@ -21,11 +21,8 @@ def build_xml(dir_name, pure_name_suffix, bboxes, _name, filename, fake_bbox, if
     filenameobj.appendChild(textfilename)
     annotation.appendChild(filenameobj)
     bbox_no = len(bboxes)
-    if iffake:
-        all_bboxes = bboxes + [fake_bbox]
-    else:
-        all_bboxes = bboxes
-    for bid, bbox in enumerate(all_bboxes):
+    #for bid, bbox in enumerate(bboxes+[fake_bbox]):
+    for bid, bbox in enumerate(bboxes):
         obj = doc.createElement("object")
     
         name = doc.createElement("name")
@@ -69,18 +66,20 @@ MA_annotation_dir = os.path.join(dataset_dir, 'Annotation_MA/')
 healthy_person_dir = os.path.join(dataset_dir, 'healthy/')
 MA_persons = os.listdir(MA_person_dir)
 
+
 parser = argparse.ArgumentParser(description='generate ma data')
-parser.add_argument('--task', default='ma', type=str, help='will be used for the output')
+parser.add_argument('--task', default='ma', type=str, help='ma or healthy')
+parser.add_argument('--ispart', default=False, action='store_true', help='if crop')
 parser.add_argument('--ifskip', default=False, action='store_true', help='if skip patch/image without bounding boxes')
-parser.add_argument('--iffake', default=False, action='store_true', help='if ad fake_bg class')
 parser.add_argument('--ifimage', default=False, action='store_true', help='if need generate images and xmls')
 parser.add_argument('--ratio-name', default='325', type=str)
-parser.add_argument('--size-times', default=1, type=int)
-parser.add_argument('--aug-steps', default=16, type=int)
 parser.add_argument('--ifdebug', default=False, action='store_true', help='if debug')
 
 args = parser.parse_args()
-output_dir = './data/Optha_MA_devkit/Optha_MA_part_'+args.task
+if args.ispart is False:
+    output_dir = './data/Optha_MA_devkit/Optha_MA'
+else:
+    output_dir = './data/Optha_MA_devkit/Optha_MA_part_negative'
 
 #generate output_dir
 if os.path.exists(output_dir) is False:
@@ -89,13 +88,15 @@ if os.path.exists(output_dir) is False:
     os.mkdir(os.path.join(output_dir, 'ImageSets'))
     os.mkdir(os.path.join(output_dir, 'ImageSets', 'Main'))
     os.mkdir(os.path.join(output_dir, 'JPEGImages'))
-    os.mkdir(os.path.join(output_dir, 'SegImages'))
 
 imageset_dir = os.path.join(output_dir, 'ImageSets')
 
 files = {}
 for file_name in ['test', 'ma_test', 'train', 'ma_train', 'val', 'ma_val', 'trainval', 'ma_trainval']:
-    files[file_name+args.ratio_name] = open(os.path.join(imageset_dir, 'Main', '{}{}.txt'.format(file_name, args.ratio_name)), 'w')
+    if args.ifskip is True:
+        files[file_name+args.ratio_name] = open(os.path.join(imageset_dir, 'Main', '{}{}.txt'.format(file_name, args.ratio_name)), 'w')
+    else:
+        files[file_name+args.ratio_name] = open(os.path.join(imageset_dir, 'Main', '{}{}full.txt'.format(file_name, args.ratio_name)), 'w')
 
 person_number = len(MA_persons)
 train_ratio, test_ratio = int(args.ratio_name[0])*0.1, int(args.ratio_name[-1])*0.1
@@ -114,34 +115,24 @@ for person_id, person in enumerate(MA_persons):
         ori_img = cv2.imread(ori_img_path)
         annotation = cv2.imread(annotation_path)
         
-        h_total, w_total = ori_img.shape[:2]
-        
         ret, thresh = cv2.threshold(annotation[:,:, 0], 127, 255, 0)
         im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         prebboxes = []
-        prebboxes_ori = []
         for c_id, contour in enumerate(contours):
             x, y, w, h = cv2.boundingRect(contour)
-            prebboxes_ori.append([x, y, x+w, y+h])
-            center_x = x + w//2
-            center_y = y + h//2
-            new_x = max(1, center_x - w//2 * args.size_times)
-            new_y = max(1, center_y - h//2 * args.size_times)
-            new_x2 = min(center_x + w//2 * args.size_times, w_total)
-            new_y2 = min(center_y + h//2 * args.size_times, h_total)
-            prebboxes.append([new_x, new_y, new_x2, new_y2])
+            prebboxes.append([x, y, x+w, y+h])
 
+        h_total, w_total = ori_img.shape[:2]
         h_num = w_num = 10
         h_grid, w_grid = h_total // h_num, w_total // w_num
             
-        for step in range(args.aug_steps):
-            sqrt_step = int(np.sqrt(args.aug_steps))
-            h_step = args.aug_steps // sqrt_step
-            w_step = args.aug_steps % sqrt_step
+        for step in range(16):
+            h_step = step // 4
+            w_step = step % 4
             #h_bias = np.random.randint(h_grid)
             #w_bias = np.random.randint(w_grid)
-            h_bias = (h_step * h_grid) // sqrt_step
-            w_bias = (w_step * w_grid) // sqrt_step
+            h_bias = (h_step * h_grid) // 4
+            w_bias = (w_step * w_grid) // 4
             for i in range(h_num-1):
                 for j in range(w_num-1):
                     h_begin = i * h_grid + h_bias
@@ -151,31 +142,14 @@ for person_id, person in enumerate(MA_persons):
                     new_img = ori_img[h_begin:h_end, w_begin:w_end, :]
                     new_annotation = annotation[h_begin:h_end, w_begin:w_end, :]
                     bboxes = []
-                    for bbox, bbox_ori in zip(prebboxes, prebboxes_ori): 
-                        if bbox_ori[0] > w_begin and bbox_ori[1] > h_begin and bbox_ori[2] < w_end and bbox_ori[3] < h_end:
-                        #if bbox[0] > w_begin and bbox[1] > h_begin and bbox[2] < w_end and bbox[3] < h_end:
-                            bboxes.append([max(1, bbox[0]-w_begin), max(1, bbox[1]-h_begin), min(w_end-w_begin, bbox[2]-w_begin), min(h_end-h_begin, bbox[3]-h_begin)])
+                    for bbox in prebboxes:
+                        if bbox[0] > w_begin and bbox[1] > h_begin and bbox[2] < w_end and bbox[3] < h_end:
+                            bboxes.append([bbox[0]-w_begin, bbox[1]-h_begin, bbox[2]-w_begin, bbox[3]-h_begin])
                     c_number = len(bboxes)
                     #skip empty image
                     if args.ifskip:
                         if c_number == 0:
                             continue
-                    
-                    def contain(bbox1, bbox2):
-                        if bbox1[0] <= bbox2[0] and bbox1[1] <= bbox2[1] and bbox1[2] >= bbox2[2] and bbox1[3] >= bbox2[3]:
-                            return True
-                        return False
-                    #combine bboxes of the same position
-                    neglected_ids = set([])
-                    for id1 in range(len(bboxes)-1):
-                        for id2 in range(id1+1, len(bboxes)):
-                            if contain(bboxes[id1], bboxes[id2]):
-                                neglected_ids.add(id2)
-                            elif contain(bboxes[id2], bboxes[id1]):
-                                neglected_ids.add(id1)
-                    neglected_bboxes = [ bboxes[neglected_id] for neglected_id in neglected_ids]
-                    for neglected_bbox in neglected_bboxes:
-                        bboxes.remove(neglected_bbox)
                     if args.ifdebug:
                         for bbox in bboxes:
                             cv2.rectangle(new_annotation, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (0, 255, 0), 1)
@@ -194,8 +168,7 @@ for person_id, person in enumerate(MA_persons):
         
                     if args.ifimage:
                         cv2.imwrite(os.path.join(output_dir, 'JPEGImages', des_file), new_img)
-                        cv2.imwrite(os.path.join(output_dir, 'SegImages', des_file), new_annotation)
-                        build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file, [1, 1, w_end-w_begin, h_end-h_begin], args.iffake)
+                        build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file, [1, 1, w_end-w_begin, h_end-h_begin])
                     pure_name_suffix += '\n'
                     files[datasetname+args.ratio_name].write(pure_name_suffix)
                     files['ma_'+datasetname+args.ratio_name].write(pure_name_suffix)
