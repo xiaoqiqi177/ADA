@@ -8,9 +8,9 @@ import fnmatch
 from PIL import Image
 import numpy as np
 from pycococreatortools import pycococreatortools
+from tqdm import tqdm
 
 ROOT_DIR = './train/'
-IMAGE_DIR = './train/shapes_train2018'
 ANNOTATION_DIR = './train/annotations'
 
 INFO = {
@@ -33,18 +33,8 @@ LICENSES = [
 CATEGORIES = [
     {
         'id': 1,
-        'name': 'square',
-        'supercategory': 'shape',
-    },
-    {
-        'id': 2,
-        'name': 'circle',
-        'supercategory': 'shape',
-    },
-    {
-        'id': 3,
-        'name': 'triangle',
-        'supercategory': 'shape',
+        'name': 'ma',
+        'supercategory': 'optha',
     },
 ]
 
@@ -68,7 +58,14 @@ def filter_for_annotations(root, files, image_filename):
     return files
 
 def main():
+    for datasetname in ['train', 'val', 'test']:
+        image_dir = './train/optha_{}2018'.format(datasetname)
+        coco_output = build_json(image_dir)
+        with open('{}/instances_optha_{}2018.json'.format(ANNOTATION_DIR, datasetname), 'w') as output_json_file:
+            json.dump(coco_output, output_json_file)
 
+
+def build_json(image_dir):
     coco_output = {
         "info": INFO,
         "licenses": LICENSES,
@@ -81,30 +78,25 @@ def main():
     segmentation_id = 1
     
     # filter for jpeg images
-    for root, _, files in os.walk(IMAGE_DIR):
+    for root, _, files in os.walk(image_dir):
         image_files = filter_for_jpeg(root, files)
-
         # go through each image
-        for image_filename in image_files:
+        for image_filename in tqdm(image_files):
             image = Image.open(image_filename)
             image_info = pycococreatortools.create_image_info(
                 image_id, os.path.basename(image_filename), image.size)
-            coco_output["images"].append(image_info)
 
             # filter for associated png annotations
-            for root, _, files in os.walk(ANNOTATION_DIR):
-                annotation_files = filter_for_annotations(root, files, image_filename)
+            #for root, _, files in os.walk(ANNOTATION_DIR):
+            if True:
+                #annotation_files = filter_for_annotations(root, files, image_filename)
+                annotation_files = [ANNOTATION_DIR + '/'+image_filename.split('/')[-1].split('.')[0]+'_ma_0.png']
 
                 # go through each associated annotation
                 for annotation_filename in annotation_files:
                     
-                    print(annotation_filename)
-                    if 'square' in annotation_filename:
+                    if 'ma' in annotation_filename:
                         class_id = 1
-                    elif 'circle' in annotation_filename:
-                        class_id = 2
-                    else:
-                        class_id = 3
 
                     category_info = {'id': class_id, 'is_crowd': 'crowd' in image_filename}
                     binary_mask = np.asarray(Image.open(annotation_filename)
@@ -113,15 +105,17 @@ def main():
                     annotation_info = pycococreatortools.create_annotation_info(
                         segmentation_id, image_id, category_info, binary_mask,
                         image.size, tolerance=2)
+                    
+                    if annotation_info is None:
+                        continue
+                    
+                    coco_output["images"].append(image_info)
                     coco_output["annotations"].append(annotation_info)
 
                     segmentation_id = segmentation_id + 1
 
             image_id = image_id + 1
-
-    with open('{}/instances_shapes_train2018.json'.format(ANNOTATION_DIR), 'w') as output_json_file:
-        json.dump(coco_output, output_json_file)
-
+    return coco_output
 
 if __name__ == "__main__":
     main()

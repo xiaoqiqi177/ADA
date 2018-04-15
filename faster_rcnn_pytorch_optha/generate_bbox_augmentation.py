@@ -68,6 +68,8 @@ MA_person_dir = os.path.join(dataset_dir, 'MA/')
 MA_annotation_dir = os.path.join(dataset_dir, 'Annotation_MA/')
 healthy_person_dir = os.path.join(dataset_dir, 'healthy/')
 MA_persons = os.listdir(MA_person_dir)
+healthy_person_dir = os.path.join(dataset_dir, 'healthy/')
+healthy_persons = os.listdir(healthy_person_dir)
 
 parser = argparse.ArgumentParser(description='generate ma data')
 parser.add_argument('--task', default='ma', type=str, help='will be used for the output')
@@ -78,6 +80,7 @@ parser.add_argument('--ratio-name', default='325', type=str)
 parser.add_argument('--size-times', default=1, type=int)
 parser.add_argument('--aug-steps', default=16, type=int)
 parser.add_argument('--ifdebug', default=False, action='store_true', help='if debug')
+parser.add_argument('--ifhealthy', default=False, action='store_true', help='if debug')
 
 args = parser.parse_args()
 output_dir = './data/Optha_MA_devkit/Optha_MA_part_'+args.task
@@ -89,7 +92,6 @@ if os.path.exists(output_dir) is False:
     os.mkdir(os.path.join(output_dir, 'ImageSets'))
     os.mkdir(os.path.join(output_dir, 'ImageSets', 'Main'))
     os.mkdir(os.path.join(output_dir, 'JPEGImages'))
-    os.mkdir(os.path.join(output_dir, 'SegImages'))
 
 imageset_dir = os.path.join(output_dir, 'ImageSets')
 
@@ -97,8 +99,71 @@ files = {}
 for file_name in ['test', 'ma_test', 'train', 'ma_train', 'val', 'ma_val', 'trainval', 'ma_trainval']:
     files[file_name+args.ratio_name] = open(os.path.join(imageset_dir, 'Main', '{}{}.txt'.format(file_name, args.ratio_name)), 'w')
 
+train_ratio, test_ratio = int(args.ratio_name[0])*0.1, int(args.ratio_name[-1])*0.1
+
+#deal with healthy images
+if args.ifhealthy:
+    person_number = len(healthy_persons)
+    for person_id, person in enumerate(healthy_persons):
+        if person_id < person_number * train_ratio:
+            datasetname = 'train'
+        elif person_id < person_number * (1 - test_ratio):
+            datasetname = 'val'
+        else:
+            datasetname = 'test'
+        ori_img_paths = os.listdir(os.path.join(healthy_person_dir, person))
+        ori_img_paths = [ os.path.join(healthy_person_dir, person, ori_img_path) for ori_img_path in ori_img_paths ]
+        for ori_img_path in ori_img_paths:
+            ori_img = cv2.imread(ori_img_path)
+            
+            h_total, w_total = ori_img.shape[:2]
+            
+            h_num = w_num = 10
+            h_grid, w_grid = h_total // h_num, w_total // w_num
+            
+            if datasetname == 'test':
+                aug_steps = 1
+            else:
+                aug_steps = args.aug_steps
+            sqrt_step = int(np.sqrt(aug_steps))
+            for step in range(aug_steps):
+                h_step = step // sqrt_step
+                w_step = step % sqrt_step
+                #h_bias = np.random.randint(h_grid)
+                #w_bias = np.random.randint(w_grid)
+                h_bias = (h_step * h_grid) // sqrt_step
+                w_bias = (w_step * w_grid) // sqrt_step
+                for i in range(h_num-1):
+                    for j in range(w_num-1):
+                        h_begin = i * h_grid + h_bias
+                        w_begin = j * w_grid + h_bias
+                        h_end = min(h_begin + h_grid, h_total)
+                        w_end = min(w_begin + w_grid, w_total)
+                        new_img = ori_img[h_begin:h_end, w_begin:w_end, :]
+                        bboxes = []
+                        
+                        #remove edge images
+                        if new_img[:,:,1].mean() < 10:
+                            continue
+
+                        name_suffix = ori_img_path.split('/')[-1]
+                        pure_name_suffix = name_suffix.split('.')[0]+'_{}_{}_{}'.format(step, i, j)
+                        des_file = pure_name_suffix+'.jpg'
+            
+                        if args.ifimage:
+                            cv2.imwrite(os.path.join(output_dir, 'JPEGImages', des_file), new_img)
+                            build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file, [1, 1, w_end-w_begin, h_end-h_begin], args.iffake)
+                        pure_name_suffix += '\n'
+                        files[datasetname+args.ratio_name].write(pure_name_suffix)
+                        files['ma_'+datasetname+args.ratio_name].write(pure_name_suffix)
+                        if datasetname != 'test':
+                            files['trainval'+args.ratio_name].write(pure_name_suffix)
+                            files['ma_trainval'+args.ratio_name].write(pure_name_suffix)
+
+#add MA images
 person_number = len(MA_persons)
 train_ratio, test_ratio = int(args.ratio_name[0])*0.1, int(args.ratio_name[-1])*0.1
+
 for person_id, person in enumerate(MA_persons):
     if person_id < person_number * train_ratio:
         datasetname = 'train'
@@ -134,10 +199,14 @@ for person_id, person in enumerate(MA_persons):
         h_num = w_num = 10
         h_grid, w_grid = h_total // h_num, w_total // w_num
             
-        for step in range(args.aug_steps):
-            sqrt_step = int(np.sqrt(args.aug_steps))
-            h_step = args.aug_steps // sqrt_step
-            w_step = args.aug_steps % sqrt_step
+        if datasetname == 'test':
+            aug_steps = 1
+        else:
+            aug_steps = args.aug_steps
+        sqrt_step = int(np.sqrt(aug_steps))
+        for step in range(aug_steps):
+            h_step = step // sqrt_step
+            w_step = step % sqrt_step
             #h_bias = np.random.randint(h_grid)
             #w_bias = np.random.randint(w_grid)
             h_bias = (h_step * h_grid) // sqrt_step
@@ -194,7 +263,6 @@ for person_id, person in enumerate(MA_persons):
         
                     if args.ifimage:
                         cv2.imwrite(os.path.join(output_dir, 'JPEGImages', des_file), new_img)
-                        cv2.imwrite(os.path.join(output_dir, 'SegImages', des_file), new_annotation)
                         build_xml(os.path.join(output_dir, 'Annotations'), pure_name_suffix, bboxes, 'ma', des_file, [1, 1, w_end-w_begin, h_end-h_begin], args.iffake)
                     pure_name_suffix += '\n'
                     files[datasetname+args.ratio_name].write(pure_name_suffix)

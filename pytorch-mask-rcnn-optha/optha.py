@@ -107,8 +107,6 @@ class CocoDataset(utils.Dataset):
             self.auto_download(dataset_dir, subset, year)
 
         coco = COCO("{}/annotations/instances_{}{}.json".format(dataset_dir, subset, year))
-        if subset == "minival" or subset == "valminusminival":
-            subset = "val"
         image_dir = "{}/{}{}".format(dataset_dir, subset, year)
 
         # Load all classes or a subset?
@@ -479,13 +477,12 @@ if __name__ == '__main__':
         # Training dataset. Use the training set and 35K from the
         # validation set, as as in the Mask RCNN paper.
         dataset_train = CocoDataset()
-        dataset_train.load_coco(args.dataset, "train", year=args.year, auto_download=args.download)
-        #dataset_train.load_coco(args.dataset, "valminusminival", year=args.year, auto_download=args.download)
+        dataset_train.load_coco(args.dataset, "optha_train", year=args.year, auto_download=args.download)
         dataset_train.prepare()
 
         # Validation dataset
         dataset_val = CocoDataset()
-        #dataset_val.load_coco(args.dataset, "minival", year=args.year, auto_download=args.download)
+        dataset_val.load_coco(args.dataset, "optha_val", year=args.year, auto_download=args.download)
         dataset_val.prepare()
 
         # *** This training schedule is an example. Update to your needs ***
@@ -516,7 +513,7 @@ if __name__ == '__main__':
     elif args.command == "evaluate":
         # Validation dataset
         dataset_val = CocoDataset()
-        coco = dataset_val.load_coco(args.dataset, "minival", year=args.year, return_coco=True, auto_download=args.download)
+        coco = dataset_val.load_coco(args.dataset, "optha_test", year=args.year, return_coco=True, auto_download=args.download)
         dataset_val.prepare()
         print("Running COCO evaluation on {} images.".format(args.limit))
         evaluate_coco(model, dataset_val, coco, "bbox", limit=int(args.limit))
