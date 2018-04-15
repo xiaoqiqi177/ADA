@@ -15,4 +15,5 @@ data
 *.JPEG
 *.jpeg
 *.pth
+*.json
 __pycache__
