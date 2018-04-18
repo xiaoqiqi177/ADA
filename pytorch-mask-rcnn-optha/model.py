@@ -1159,7 +1159,8 @@ def load_image_gt(dataset, config, image_id, augment=False,
     """
     # Load image and mask
     image = dataset.load_image(image_id)
-    mask, class_ids = dataset.load_mask(image_id)
+    mask, class_ids = dataset.load_mask(image_id)#mark
+
     shape = image.shape
     image, window, scale, padding = utils.resize_image(
         image,
@@ -1357,13 +1358,16 @@ class Dataset(torch.utils.data.Dataset):
         image, image_metas, gt_class_ids, gt_boxes, gt_masks = \
             load_image_gt(self.dataset, self.config, image_id, augment=self.augment,
                           use_mini_mask=self.config.USE_MINI_MASK)
-
+        
         # Skip images that have no instances. This can happen in cases
         # where we train on a subset of classes and the image doesn't
         # have any of the classes we care about.
+        
         if not np.any(gt_class_ids > 0):
+            print('----no gt class----')
             return None
-
+        assert np.any(gt_class_ids > 0)
+        
         # RPN Targets
         rpn_match, rpn_bbox = build_rpn_targets(image.shape, self.anchors,
                                                 gt_class_ids, gt_boxes, self.config)
@@ -1388,6 +1392,14 @@ class Dataset(torch.utils.data.Dataset):
         gt_class_ids = torch.from_numpy(gt_class_ids)
         gt_boxes = torch.from_numpy(gt_boxes).float()
         gt_masks = torch.from_numpy(gt_masks.astype(int).transpose(2, 0, 1)).float()
+
+        assert images is not None
+        assert image_metas is not None
+        assert rpn_match is not None
+        assert rpn_bbox is not None
+        assert gt_class_ids is not None
+        assert gt_boxes is not None
+        assert gt_masks is not None
 
         return images, image_metas, rpn_match, rpn_bbox, gt_class_ids, gt_boxes, gt_masks
 
@@ -1780,9 +1792,9 @@ class MaskRCNN(nn.Module):
 
         # Data generators
         train_set = Dataset(train_dataset, self.config, augment=True)
-        train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True, num_workers=4)
+        train_generator = torch.utils.data.DataLoader(train_set, batch_size=1, shuffle=True, num_workers=1)
         val_set = Dataset(val_dataset, self.config, augment=True)
-        val_generator = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True, num_workers=4)
+        val_generator = torch.utils.data.DataLoader(val_set, batch_size=1, shuffle=True, num_workers=1)
 
         # Train
         log("\nStarting at epoch {}. LR={}\n".format(self.epoch+1, learning_rate))

@@ -135,6 +135,13 @@ for person_id, person in enumerate(MA_persons):
                     des_file = pure_name_suffix+'.jpeg'
         
                     annotation_file = pure_name_suffix+'_ma_0.png'
+                    
+                    if new_annotation.sum() == 0:
+                        continue
+
+                    if (new_annotation[:, 0, 0] > 0).any() or (new_annotation[:, -1, 0] > 0).any() or (new_annotation[0, :, 0] > 0).any() or (new_annotation[-1,:,0]>0).any():
+                        continue
+                    
                     if args.ifimage:
                         cv2.imwrite(os.path.join(output_dir, 'annotations', annotation_file), new_annotation)
-                        cv2.imwrite(os.path.join(output_dir, 'ma_'+datasetname+'2018', des_file), new_img)
+                        cv2.imwrite(os.path.join(output_dir, 'optha_'+datasetname+'2018', des_file), new_img)

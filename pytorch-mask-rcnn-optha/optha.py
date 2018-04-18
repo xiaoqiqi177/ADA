@@ -227,6 +227,7 @@ class CocoDataset(utils.Dataset):
         """
         # If not a COCO image, delegate to parent class.
         image_info = self.image_info[image_id]
+
         if image_info["source"] != "coco":
             return super(CocoDataset, self).load_mask(image_id)
 
@@ -243,8 +244,6 @@ class CocoDataset(utils.Dataset):
                                    image_info["width"])
                 # Some objects are so small that they're less than 1 pixel area
                 # and end up rounded out. Skip those objects.
-                if m.max() < 1:
-                    continue
                 # Is it a crowd? If so, use a negative class ID.
                 if annotation['iscrowd']:
                     # Use negative class ID for crowds
@@ -284,6 +283,8 @@ class CocoDataset(utils.Dataset):
         if isinstance(segm, list):
             # polygon -- a single object might consist of multiple parts
             # we merge all parts into one mask rle code
+            #print(len(segm), height, width)
+            #print(segm)
             rles = maskUtils.frPyObjects(segm, height, width)
             rle = maskUtils.merge(rles)
         elif isinstance(segm['counts'], list):

@@ -132,7 +132,7 @@ if args.resume:
         print("=> loading checkout '{}'".format(args.resume))
         checkpoint = torch.load(args.resume)
         start_step = checkpoint['step']
-        end_step = start_step + 100000
+        end_step = start_step + 200000
         net.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         print("=> loaded checkpoint '{}' (step {})".format(args.resume, checkpoint['step']))
