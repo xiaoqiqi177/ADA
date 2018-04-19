@@ -11,55 +11,7 @@ import shutil
 import xml.dom.minidom as minidom
 import argparse
 
-def build_xml(dir_name, pure_name_suffix, bboxes, _name, filename, fake_bbox):
-    doc = minidom.Document()
-    annotation = doc.createElement("annotation")
-    doc.appendChild(annotation)
-    fout = open(os.path.join(dir_name, pure_name_suffix+'.xml'), 'w')
-    filenameobj = doc.createElement('filename')
-    textfilename = doc.createTextNode(filename)
-    filenameobj.appendChild(textfilename)
-    annotation.appendChild(filenameobj)
-    bbox_no = len(bboxes)
-    for bid, bbox in enumerate(bboxes):
-        obj = doc.createElement("object")
-    
-        name = doc.createElement("name")
-        if bid == bbox_no:
-            textname = doc.createTextNode('fake_bg')
-        else:
-            textname = doc.createTextNode(_name)
-        name.appendChild(textname)
-        obj.appendChild(name)
-    
-        box = doc.createElement("bndbox")
-        obj.appendChild(box)
-    
-        xmin = doc.createElement("xmin")
-        xmax = doc.createElement("xmax")
-        ymin = doc.createElement("ymin")
-        ymax = doc.createElement("ymax")
-    
-        textxmin = doc.createTextNode(str(bbox[0]))
-        xmin.appendChild(textxmin)
-        textxmax = doc.createTextNode(str(bbox[2]))
-        xmax.appendChild(textxmax)
-        textymin = doc.createTextNode(str(bbox[1]))
-        ymin.appendChild(textymin)
-        textymax = doc.createTextNode(str(bbox[3]))
-        ymax.appendChild(textymax)
-
-        box.appendChild(xmin)
-        box.appendChild(xmax)
-        box.appendChild(ymin)
-        box.appendChild(ymax)
-    
-        annotation.appendChild(obj)
-
-    doc.writexml(fout,"\t", "\t", "\n")
-    fout.close()
-
-dataset_dir = '../../../data/e_optha_MA/'
+dataset_dir = '../../../../data/e_optha_MA/'
 MA_person_dir = os.path.join(dataset_dir, 'MA/')
 MA_annotation_dir = os.path.join(dataset_dir, 'Annotation_MA/')
 healthy_person_dir = os.path.join(dataset_dir, 'healthy/')
@@ -74,7 +26,7 @@ parser.add_argument('--aug-steps', default=16, type=int)
 parser.add_argument('--ifdebug', default=False, action='store_true', help='if debug')
 
 args = parser.parse_args()
-output_dir = './train'
+output_dir = './train2'
 
 #generate output_dir
 if os.path.exists(output_dir) is False:
@@ -135,13 +87,13 @@ for person_id, person in enumerate(MA_persons):
                     des_file = pure_name_suffix+'.jpeg'
         
                     annotation_file = pure_name_suffix+'_ma_0.png'
-                    
+                    '''
                     if new_annotation.sum() == 0:
                         continue
 
                     if (new_annotation[:, 0, 0] > 0).any() or (new_annotation[:, -1, 0] > 0).any() or (new_annotation[0, :, 0] > 0).any() or (new_annotation[-1,:,0]>0).any():
                         continue
-                    
+                    '''
                     if args.ifimage:
                         cv2.imwrite(os.path.join(output_dir, 'annotations', annotation_file), new_annotation)
                         cv2.imwrite(os.path.join(output_dir, 'optha_'+datasetname+'2018', des_file), new_img)

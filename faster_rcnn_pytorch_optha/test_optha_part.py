@@ -18,16 +18,17 @@ from faster_rcnn.fast_rcnn.config import cfg, cfg_from_file, get_output_dir
 # hyper-parameters
 # ------------
 cfg_file = 'experiments/cfgs/optha.yml'
-if sys.argv[1] == 'healthy':
-    imdb_name = 'optha_ma_part_'+sys.argv[1]
-    trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_100000.h5'
-else:
-    imdb_name = 'optha_ma_part_test'+sys.argv[1]
-    trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_10000.pth.tar'
+
+imdb_name = 'optha_ma_part'
+imdb_dataset_name = 'test'
+imdb_ratio = '721'
+imdb_task_name = sys.argv[1]
+
+trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_'+sys.argv[3]+'.pth.tar'
 
 rand_seed = 1024
 
-save_name = 'faster_rcnn_100000'
+save_name = 'faster_rcnn_'+sys.argv[3]
 max_per_image = 300
 #thresh = 0.05
 vis = True
@@ -173,7 +174,7 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.9, vis=False):
 
 if __name__ == '__main__':
     # load data
-    imdb = get_imdb(imdb_name)
+    imdb = get_imdb(imdb_name, imdb_dataset_name, imdb_ratio, imdb_task_name)
     imdb.competition_mode(on=True)
 
     # load net
