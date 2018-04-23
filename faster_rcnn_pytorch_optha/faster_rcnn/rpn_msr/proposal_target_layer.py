@@ -78,7 +78,6 @@ def proposal_target_layer(rpn_rois, gt_boxes, gt_ishard, dontcare_areas, _num_cl
     labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
         all_rois, gt_boxes, gt_ishard, dontcare_areas, fg_rois_per_image,
         rois_per_image, _num_classes)
-
     _count = 1
 
     rois = rois.reshape(-1, 5)

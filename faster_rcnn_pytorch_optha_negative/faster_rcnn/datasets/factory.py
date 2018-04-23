@@ -41,23 +41,9 @@ for trainratio in range(0, 9):
             for iffull in ['', 'full']:
                 splitset.append(datasetname+ratio_name+iffull)
 
-for split in splitset:
-    for ispart in [True, False]:
-        if ispart is False:
-            name = 'optha_ma_{}'.format(split)
-        else:
-            name = 'optha_ma_{}_{}'.format('part', split)
-        __sets[name] = (lambda split=split, ispart=ispart:
-                    optha_ma(split, ispart))
-
-def get_imdb(name):
+def get_imdb(name, dataset_name, ratio, task_name):
     """Get an imdb (image database) by name."""
-    if not name in __sets:
-        # print (list_imdbs())
-        raise KeyError('Unknown dataset: {}'.format(name))
-    
-    return __sets[name]()
-
+    return optha_ma(dataset_name+ratio, task_name)
 
 def list_imdbs():
     """List all registered imdbs."""

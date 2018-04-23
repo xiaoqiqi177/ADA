@@ -33,20 +33,13 @@ from ..fast_rcnn.config import cfg
 
 
 class optha_ma(imdb):
-    def __init__(self, image_set, ispart, devkit_path=None):
-        if ispart:
-            imdb.__init__(self, 'optha_ma_part_' + image_set)
-        else:
-            imdb.__init__(self, 'optha_ma_' + image_set)
+    def __init__(self, image_set, task_name, devkit_path=None):
+        imdb.__init__(self, 'optha_ma_part_' + image_set)
         self._image_set = image_set
         self._devkit_path = self._get_default_path() if devkit_path is None\
                 else devkit_path
-        if ispart:
-            self._data_path = os.path.join(self._devkit_path, 'Optha_MA_part_negative')
-        else:
-            self._data_path = os.path.join(self._devkit_path, 'Optha_MA')
+        self._data_path = os.path.join(self._devkit_path, 'Optha_MA_part_'+task_name)
         self._classes = ('__background__',  # always index 0
-                        'fake_bg', 
                         'ma')
         self._class_to_ind = dict(zip(self.classes, range(self.num_classes)))
         self._image_ext = '.jpg'

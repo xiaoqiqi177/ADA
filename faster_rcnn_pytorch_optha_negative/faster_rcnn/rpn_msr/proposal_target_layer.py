@@ -75,6 +75,7 @@ def proposal_target_layer(rpn_rois, gt_boxes, gt_ishard, dontcare_areas, _num_cl
 
     # Sample rois with classification labels and bounding box regression
     # targets
+    
     labels, rois, bbox_targets, bbox_inside_weights = _sample_rois(
         all_rois, gt_boxes, gt_ishard, dontcare_areas, fg_rois_per_image,
         rois_per_image, _num_classes)
@@ -95,6 +96,16 @@ def _sample_rois(all_rois, gt_boxes, gt_ishard, dontcare_areas, fg_rois_per_imag
     """Generate a random sample of RoIs comprising foreground and background
     examples.
     """
+    if len(gt_boxes) == 0:
+        try:
+            keep_inds = npr.choice(np.arange(len(all_rois)), size=rois_per_image, replace=False)
+        except:
+            import IPython
+            IPython.embed()
+        rois = all_rois[keep_inds]
+        labels = np.zeros(rois_per_image, )
+        return labels, rois, np.zeros((rois_per_image, num_classes*3)), np.zeros((rois_per_image, num_classes*3))
+    
     # overlaps: R x G
     overlaps = bbox_overlaps(
         np.ascontiguousarray(all_rois[:, 1:5], dtype=np.float),
@@ -102,7 +113,7 @@ def _sample_rois(all_rois, gt_boxes, gt_ishard, dontcare_areas, fg_rois_per_imag
     gt_assignment = overlaps.argmax(axis=1)  # R
     max_overlaps = overlaps.max(axis=1)  # R
     labels = gt_boxes[gt_assignment, 4]
-
+    
     # preclude hard samples
     ignore_inds = np.empty(shape=(0), dtype=int)
     if cfg.TRAIN.PRECLUDE_HARD_SAMPLES and gt_ishard is not None and gt_ishard.shape[0] > 0:

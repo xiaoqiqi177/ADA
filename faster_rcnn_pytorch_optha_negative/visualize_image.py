@@ -10,6 +10,7 @@ import glob
 import shutil
 import xml.dom.minidom as minidom
 import argparse
+from matplotlib import pyplot as plt
 
 dataset_dir = '../datasets/e_optha_MA/'
 MA_person_dir = os.path.join(dataset_dir, 'MA/')
@@ -43,27 +44,35 @@ for person_id, person in enumerate(MA_persons):
                 bboxes = []
 
                 c_number = len(contours)
-                if c_number == 0:
-                    continue
+                
+                new_img_b = new_img[:, :, 0]
                 new_img_g = new_img[:, :, 1]
-                new_img_g = np.dstack((new_img_g, new_img_g, new_img_g))
-                 
-                edges = cv2.Canny(new_img_g, 30, 40)
-                edges = np.dstack((edges, edges, edges))
+                new_img_r = new_img[:, :, 2]
+                
                 for c_id, contour in enumerate(contours):
                     x, y, w, h = cv2.boundingRect(contour)
                     x, y = x+1, y+1
                     center_x = x + w/2
                     center_y = y + h/2
-                    #w *= 3
-                    #h *= 3
                     x = int(max(center_x - w/2, 1))
                     y = int(max(center_y - h/2, 1))
                     w = int(min(w, new_img.shape[1]-x))
                     h = int(min(h, new_img.shape[0]-y))
-                    #cv2.drawContours(new_annotation, [contour], 0, (255, 0, 0), 1)
                     cv2.rectangle(new_annotation, (x, y), (x + w, y + h), (0, 255, 0), 1)
-                    #cv2.rectangle(new_img, (x, y), (x + w, y + h), (0, 255, 0), 1)
-                show_img = np.concatenate((new_img, new_img_g, edges, new_annotation), axis=0)
+                
+                if len(contours) <= 0:
+                    continue
+                equ = cv2.equalizeHist(new_img_g)
+                
+                clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+                cl1 = clahe.apply(new_img_g) 
+                
+                new_img_b = np.dstack((new_img_b, new_img_b, new_img_b))
+                new_img_g = np.dstack((new_img_g, new_img_g, new_img_g))
+                new_img_r = np.dstack((new_img_r, new_img_r, new_img_r))
+                equ = np.dstack((equ, equ, equ))
+                cl1 = np.dstack((cl1, cl1, cl1))
+ 
+                show_img = np.concatenate((new_img, new_img_b, new_img_g, new_img_r, equ, cl1, new_annotation), axis=0)
                 cv2.imshow('show_img', show_img)
                 cv2.waitKey(0)

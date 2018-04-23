@@ -43,18 +43,22 @@ parser = argparse.ArgumentParser(description='train ma dataset')
 parser.add_argument('--datasetname', default='trainval', type=str)
 parser.add_argument('--ratio-name', default='325', type=str)
 parser.add_argument('--resume', default='', type=str, metavar='PATH')
-parser.add_argument('--task-name', default='task0', type=str)
+parser.add_argument('--task-name', default='ma_double', type=str)
 parser.add_argument('--start-step', default=0, type=int)
 
 args = parser.parse_args()
 
-imdb_name = 'optha_ma_part_'+args.datasetname+args.ratio_name
+imdb_name = 'optha_ma_part'
+imdb_dataset_name = args.datasetname
+imdb_ratio = args.ratio_name
+imdb_task_name = args.task_name
+#imdb_name = 'optha_ma_part_'+args.datasetname+args.ratio_name
 
 cfg_file = 'experiments/cfgs/optha.yml'
 output_dir = 'models/saved_model_optha_part_'+args.ratio_name+'_'+args.task_name
 
 start_step = args.start_step
-end_step = start_step + 100000
+end_step = start_step + 500000
 #lr_decay_steps = {60000, 80000}
 lr_decay_steps = {}
 lr_decay = 1./10
@@ -83,7 +87,8 @@ log_dir = cfg.LOG_DIR+'_'+args.ratio_name+'_'+args.task_name
 exp_dir = cfg.EXP_DIR
 
 # load data
-imdb = get_imdb(imdb_name)
+imdb = get_imdb(imdb_name, imdb_dataset_name, imdb_ratio, imdb_task_name)
+
 rdl_roidb.prepare_roidb(imdb)
 roidb = imdb.roidb
 data_layer = RoIDataLayer(roidb, imdb.num_classes)
@@ -127,7 +132,7 @@ if args.resume:
         print("=> loading checkout '{}'".format(args.resume))
         checkpoint = torch.load(args.resume)
         start_step = checkpoint['step']
-        end_step = start_step + 100000
+        end_step = start_step + 500000
         net.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         print("=> loaded checkpoint '{}' (step {})".format(args.resume, checkpoint['step']))
@@ -185,7 +190,10 @@ for step in range(start_step, end_step+1):
         log_print(log_text, color='green', attrs=['bold'])
 
         if _DEBUG:
-            log_print('\tTP: %.2f%%, TF: %.2f%%, fg/bg=(%d/%d)' % (tp/fg*100., tf/bg*100., fg/step_cnt, bg/step_cnt))
+            if fg > 0:
+                log_print('\tTP: %.2f%%, TF: %.2f%%, fg/bg=(%d/%d)' % (tp/fg*100., tf/bg*100., fg/step_cnt, bg/step_cnt))
+            else:
+                log_print('\tTF: %.2f%%, fg/bg=(%d/%d)' % (tf/bg*100., fg/step_cnt, bg/step_cnt))
             log_print('\trpn_cls: %.4f, rpn_box: %.4f, rcnn_cls: %.4f, rcnn_box: %.4f' % (
                 net.rpn.cross_entropy.data.cpu().numpy()[0], net.rpn.loss_box.data.cpu().numpy()[0],
                 net.cross_entropy.data.cpu().numpy()[0], net.loss_box.data.cpu().numpy()[0])
@@ -196,7 +204,8 @@ for step in range(start_step, end_step+1):
         logger.scalar_summary('train_loss', train_loss / step_cnt, step=step)
         logger.scalar_summary('learning_rate', lr, step=step)
         if _DEBUG:
-            logger.scalar_summary('true_positive', tp/fg*100., step=step)
+            if fg > 0:
+                logger.scalar_summary('true_positive', tp/fg*100., step=step)
             logger.scalar_summary('true_negative', tf/bg*100., step=step)
             losses = {'rpn_cls': float(net.rpn.cross_entropy.data.cpu().numpy()[0]),
                       'rpn_box': float(net.rpn.loss_box.data.cpu().numpy()[0]),

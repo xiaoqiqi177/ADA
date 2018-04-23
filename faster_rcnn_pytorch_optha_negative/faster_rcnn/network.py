@@ -111,11 +111,17 @@ def clip_gradient(model, clip_norm):
     totalnorm = 0
     for p in model.parameters():
         if p.requires_grad:
-            modulenorm = p.grad.data.norm()
-            totalnorm += modulenorm ** 2
+            try:
+                modulenorm = p.grad.data.norm()
+                totalnorm += modulenorm ** 2
+            except:
+                pass
     totalnorm = np.sqrt(totalnorm)
 
     norm = clip_norm / max(totalnorm, clip_norm)
     for p in model.parameters():
         if p.requires_grad:
-            p.grad.mul_(norm)
+            try:
+                p.grad.mul_(norm)
+            except:
+                pass

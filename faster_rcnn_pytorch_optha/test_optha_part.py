@@ -20,7 +20,7 @@ from faster_rcnn.fast_rcnn.config import cfg, cfg_from_file, get_output_dir
 cfg_file = 'experiments/cfgs/optha.yml'
 
 imdb_name = 'optha_ma_part'
-imdb_dataset_name = 'test'
+imdb_dataset_name = sys.argv[4]
 imdb_ratio = '721'
 imdb_task_name = sys.argv[1]
 
@@ -28,9 +28,8 @@ trained_model = 'models/saved_model_optha_part'+sys.argv[2]+'/faster_rcnn_'+sys.
 
 rand_seed = 1024
 
-save_name = 'faster_rcnn_'+sys.argv[3]
+save_name = 'faster_rcnn_'+sys.argv[2] + sys.argv[3]
 max_per_image = 300
-#thresh = 0.05
 vis = True
 
 # ------------
@@ -43,14 +42,15 @@ cfg_from_file(cfg_file)
 
 def vis_detections(im, class_name, dets, showcolor, thresh=0.5):
     """Visual debugging of detections."""
+    bboxes = []
     for i in range(np.minimum(10, dets.shape[0])):
         bbox = tuple(int(np.round(x)) for x in dets[i, :4])
         score = dets[i, -1]
         if score > thresh:
             cv2.rectangle(im, bbox[0:2], bbox[2:4], showcolor, 1)
-            #cv2.putText(im, '%s: %.3f' % (class_name, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN, 1.0, (0, 0, 255), thickness=1)
+            bboxes.append(list(bbox))
             cv2.putText(im, '%s: %.3f' % (class_name, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN, 1.0, showcolor, thickness=1)
-    return im
+    return im, bboxes
 
 
 def im_detect(net, image):
@@ -80,19 +80,11 @@ def im_detect(net, image):
 
     return scores, pred_boxes
 
-def test_net(name, net, imdb, max_per_image=300, thresh=0.9, vis=False):
+def test_net(name, net, imdb, max_per_image=300, thresh=0.98, vis=False):
     """Test a Fast R-CNN network on an image database."""
     num_images = len(imdb.image_index)
-    # all detections are collected into:
-    #    all_boxes[cls][image] = N x 5 array of detections in
-    #    (x1, y1, x2, y2, score)
-    all_boxes = [[[] for _ in range(num_images)]
-                 for _ in range(imdb.num_classes)]
 
-    if sys.argv[1] == 'healthy':
-        output_dir = get_output_dir(imdb, name)+'_'+sys.argv[2]
-    else:
-        output_dir = get_output_dir(imdb, name)+sys.argv[2]
+    output_dir = './output/'+sys.argv[1] + '_'+ sys.argv[2]+'_'+sys.argv[3] + '_' + sys.argv[4]
     if os.path.exists(output_dir) is False:
         os.mkdir(output_dir)
     print(output_dir)
@@ -100,6 +92,9 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.9, vis=False):
     _t = {'im_detect': Timer(), 'misc': Timer()}
 
     ori_img_names = {}
+    gt_bounding_boxes = {}
+    detected_bounding_boxes = {}
+
     padding = 0
     for i in range(num_images):
         img_path = imdb.image_path_at(i)
@@ -110,11 +105,11 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.9, vis=False):
         h_patch, w_patch = im.shape[:2]
         
         if ori_name in ori_img_names:
-            #imshow = ori_img_names[ori_name]
             pass
         else:
             ori_img_names[ori_name] = np.zeros((h_patch*10+padding*9, w_patch*10+padding*9, 3), dtype='uint8')
-
+            gt_bounding_boxes[ori_name] = []
+            detected_bounding_boxes[ori_name] = []
         
         _t['im_detect'].tic()
         scores, boxes = im_detect(net, im)
@@ -122,7 +117,6 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.9, vis=False):
 
         _t['misc'].tic()
         if vis:
-            # im2show = np.copy(im[:, :, (2, 1, 0)])
             im2show = np.copy(im)
 
         # skip j = 0, because it's the background class
@@ -144,31 +138,19 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.9, vis=False):
             for g_id, gt_box in enumerate(gt_boxes):
                 gt_dets[g_id][:4] = gt_box
             if vis:
-                if j == 1:
-                    im2show = vis_detections(im2show, imdb.classes[j], cls_dets, (150, 0, 0), thresh=thresh)
                 if j == 2:
-                    im2show = vis_detections(im2show, imdb.classes[j], cls_dets, (255, 0, 0), thresh=thresh)
-                im2show = vis_detections(im2show, imdb.classes[j], gt_dets, (0, 255, 0))
-            all_boxes[j][i] = cls_dets
+                    im2show, bboxes_ma = vis_detections(im2show, imdb.classes[j], cls_dets, (255, 0, 0), thresh=thresh)
+                    im2show, bboxes_gt = vis_detections(im2show, imdb.classes[j], gt_dets, (0, 255, 0))
 
-        # Limit to max_per_image detections *over all classes*
-        if max_per_image > 0:
-            image_scores = np.hstack([all_boxes[j][i][:, -1]
-                                      for j in range(1, imdb.num_classes)])
-            if len(image_scores) > max_per_image:
-                image_thresh = np.sort(image_scores)[-max_per_image]
-                for j in range(1, imdb.num_classes):
-                    keep = np.where(all_boxes[j][i][:, -1] >= image_thresh)[0]
-                    all_boxes[j][i] = all_boxes[j][i][keep, :]
-        nms_time = _t['misc'].toc(average=False)
-
-        print('im_detect: {:d}/{:d} {:.3f}s {:.3f}s' \
-            .format(i + 1, num_images, detect_time, nms_time))
-
+        print('im_detect: {:d}/{:d} {:.3f}s' \
+            .format(i + 1, num_images, detect_time))
         if vis:
-            #cv2.imshow('test', im2show)
-            #cv2.waitKey(1)
             ori_img_names[ori_name][h_id*(h_patch+padding):h_id*(h_patch+padding)+h_patch, w_id*(w_patch+padding):w_id*(w_patch+padding)+w_patch, :] = im2show.copy()
+            detected_bounding_boxes[ori_name].append(bboxes_ma)
+            gt_bounding_boxes[ori_name].append(bboxes_gt)
+
+    with open(os.path.join(output_dir, 'result.pkl'), 'wb') as f:
+        pickle.dump([detected_bounding_boxes, gt_bounding_boxes], f)
     for ori_name, showimg in ori_img_names.items():
         cv2.imwrite(os.path.join(output_dir, ori_name+'_output.png'), showimg)
 
@@ -187,4 +169,4 @@ if __name__ == '__main__':
     net.cuda()
     net.eval()
     # evaluation
-    test_net(save_name, net, imdb, max_per_image, thresh=0.9, vis=vis)
+    test_net(save_name, net, imdb, max_per_image, thresh=0.98, vis=vis)
