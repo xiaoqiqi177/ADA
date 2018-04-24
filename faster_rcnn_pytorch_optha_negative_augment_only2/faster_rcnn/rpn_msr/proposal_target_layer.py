@@ -97,11 +97,7 @@ def _sample_rois(all_rois, gt_boxes, gt_ishard, dontcare_areas, fg_rois_per_imag
     examples.
     """
     if len(gt_boxes) == 0:
-        try:
-            keep_inds = npr.choice(np.arange(len(all_rois)), size=rois_per_image, replace=False)
-        except:
-            import IPython
-            IPython.embed()
+        keep_inds = npr.choice(np.arange(len(all_rois)), size=rois_per_image, replace=False)
         rois = all_rois[keep_inds]
         labels = np.zeros(rois_per_image, )
         return labels, rois, np.zeros((rois_per_image, num_classes*4)), np.zeros((rois_per_image, num_classes*4))
