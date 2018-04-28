@@ -161,7 +161,8 @@ for step in range(start_step, end_step+1):
     gt_boxes = blobs['gt_boxes']
     gt_ishard = blobs['gt_ishard']
     dontcare_areas = blobs['dontcare_areas']
-
+    import IPython
+    IPython.embed()
     # forward
     net(im_data, im_info, gt_boxes, gt_ishard, dontcare_areas)
     loss = net.loss + net.rpn.loss

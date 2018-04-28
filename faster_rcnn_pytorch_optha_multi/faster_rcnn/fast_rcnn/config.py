@@ -77,7 +77,7 @@ __C.TRAIN.SCALES = (600,)
 
 __C.TRAIN.CROP_H = 200
 __C.TRAIN.CROP_W = 200
-__C.TRAIN.POSITIVE_PATCH_RATIO = 0.5
+__C.TRAIN.POSITIVE_PATCH_RATIO = 1.0
 
 # Max pixel size of the longest side of a scaled input image
 __C.TRAIN.MAX_SIZE = 1000

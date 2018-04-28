@@ -50,6 +50,7 @@ parser.add_argument('--ratio-name', default='325', type=str)
 parser.add_argument('--resume', default='', type=str, metavar='PATH')
 parser.add_argument('--task-name', default='ma_double', type=str)
 parser.add_argument('--start-epoch', default=0, type=int)
+parser.add_argument('--ymlname', default='optha_half', type=str)
 
 args = parser.parse_args()
 
@@ -59,8 +60,8 @@ imdb_ratio = args.ratio_name
 imdb_task_name = args.task_name
 #imdb_name = 'optha_ma_part_'+args.datasetname+args.ratio_name
 
-cfg_file = 'experiments/cfgs/optha.yml'
-output_dir = 'models/saved_model_optha_part_'+args.ratio_name+'_'+args.task_name
+cfg_file = 'experiments/cfgs/'+args.ymlname+'.yml'
+output_dir = 'models/saved_model_optha_part_'+args.ratio_name+'_'+args.task_name + '_'+args.ymlname
 
 start_epoch = args.start_epoch
 end_epoch = start_epoch + 50000
@@ -88,7 +89,7 @@ weight_decay = cfg.TRAIN.WEIGHT_DECAY
 disp_interval = cfg.TRAIN.DISPLAY
 log_interval = cfg.TRAIN.LOG_IMAGE_ITERS
 #log_dir = cfg.LOG_DIR+'_'+args.ratio_name
-log_dir = cfg.LOG_DIR+'_'+args.ratio_name+'_'+args.task_name
+log_dir = cfg.LOG_DIR+'_'+args.ratio_name+'_'+args.task_name+'_'+args.ymlname
 exp_dir = cfg.EXP_DIR
 
 # load data
@@ -193,18 +194,30 @@ trainval_dataset = OpthaDataset('trainval', roidb, imdb.num_classes)
 train_sampler = None
 trainval_loader = torch.utils.data.DataLoader(
         trainval_dataset, batch_size = 1, shuffle = (train_sampler is None),
-        num_workers = 4, collate_fn = collate, pin_memory = True, sampler = train_sampler)
+        num_workers = 0, collate_fn = collate, pin_memory = True, sampler = train_sampler)
 
 step = start_step
 step_cnt = 0
 
 def train(loader, net, optimizer, epoch, logger):
+    global tp, tf, fg, bg
+    global train_loss, step, step_cnt
+    global re_cnt
+    global lr
     for i, blobs in enumerate(loader):
         im_data = blobs['data'][0]
         im_info = blobs['im_info'][0]
         gt_boxes = blobs['gt_boxes'][0]
         gt_ishard = blobs['gt_ishard'][0]
         dontcare_areas = blobs['dontcare_areas'][0]
+        
+        if False:
+            show_img = np.uint8(im_data + cfg.PIXEL_MEANS)[0]
+            for gt_box in gt_boxes:
+                cv2.rectangle(show_img, (gt_box[0], gt_box[1]), (gt_box[2], gt_box[3]), (0, 255, 0), 1)
+            cv2.imshow('img', show_img)
+            cv2.waitKey(0)
+        
         # forward
         net(im_data, im_info, gt_boxes, gt_ishard, dontcare_areas)
         loss = net.loss + net.rpn.loss
