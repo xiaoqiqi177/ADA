@@ -9,9 +9,9 @@ from .network import Conv2d
 from . import network
 
 
-class VGG16(nn.Module):
+class VGG16_4(nn.Module):
     def __init__(self, bn=False):
-        super(VGG16, self).__init__()
+        super(VGG16_4, self).__init__()
 
         self.conv1 = nn.Sequential(Conv2d(3, 64, 3, same_padding=True, bn=bn),
                                    Conv2d(64, 64, 3, same_padding=True, bn=bn),
@@ -28,10 +28,6 @@ class VGG16(nn.Module):
                                    nn.MaxPool2d(2))
         self.conv4 = nn.Sequential(Conv2d(256, 512, 3, same_padding=True, bn=bn),
                                    Conv2d(512, 512, 3, same_padding=True, bn=bn),
-                                   Conv2d(512, 512, 3, same_padding=True, bn=bn),
-                                   nn.MaxPool2d(2))
-        self.conv5 = nn.Sequential(Conv2d(512, 512, 3, same_padding=True, bn=bn),
-                                   Conv2d(512, 512, 3, same_padding=True, bn=bn),
                                    Conv2d(512, 512, 3, same_padding=True, bn=bn))
 
     def forward(self, im_data):
@@ -46,7 +42,6 @@ class VGG16(nn.Module):
         x = self.conv2(x)
         x = self.conv3(x)
         x = self.conv4(x)
-        x = self.conv5(x)
         return x
 
     def load_from_npz(self, params):

@@ -30,8 +30,9 @@ class Logger(object):
                 os.makedirs(os.path.join(log_dir, name))
             except:
                 pass
-            self.writer = tf.summary.FileWriter(os.path.join(log_dir, name),
-                                                filename_suffix=name)
+            #self.writer = tf.summary.FileWriter(os.path.join(log_dir, name),
+            #                                    filename_suffix=name)
+            self.writer = tf.summary.FileWriter(os.path.join(log_dir, name))
         else:
             self.writer = tf.summary.FileWriter(log_dir, filename_suffix=name)
 
