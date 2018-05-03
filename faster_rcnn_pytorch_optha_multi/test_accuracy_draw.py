@@ -6,6 +6,7 @@ import pickle
 import numpy as np
 from tqdm import tqdm
 from sklearn.metrics import roc_auc_score, average_precision_score
+from plot_roc import plot_roc
 
 def iou(bb1, bb2):
     w = max(0, min(bb1[2], bb2[2]) - max(bb1[0], bb2[0]))
@@ -35,21 +36,22 @@ def _evaluate_predictions(y_true, y_pred, metric_fn):
     return metric_fn(y_true, y_pred)
 
 
-def _evaluate_metric(y_true, y_pred, metric):
+def _evaluate_metric(y_true, y_pred, metric, output_dir):
     if metric == 'AUC':
+        plot_roc('ROC curve on image-level', os.path.join(output_dir, 'roc.png'), y_pred, y_true) 
         return _evaluate_predictions(y_true, y_pred, roc_auc_score)
     if metric == 'AP':
         return _evaluate_predictions(y_true, y_pred, average_precision_score)
     raise ValueError('Unknown metric. Given {} but only know how to compute AUC and AP')
 
 
-def evaluate(y_true, y_pred, metrics=['AUC']):
+def evaluate(y_true, y_pred, output_dir, metrics=['AUC']):
     if y_true is None or y_pred is None:
         return [], ([], [])
 
     results = []
     for metric in metrics:
-        results.append(_evaluate_metric(y_true, y_pred, metric))
+        results.append(_evaluate_metric(y_true, y_pred, metric, output_dir))
 
     return results
 
@@ -102,7 +104,7 @@ if __name__ == '__main__':
     y_pred = np.array(y_pred).reshape(-1, 1)
     recalls = np.array(recalls)
     precisions = np.array(precisions)
-    results = evaluate(y_true, y_pred, metrics=['AUC', 'AP'])
+    results = evaluate(y_true, y_pred, output_dir, metrics=['AUC', 'AP'])
     print('AUC: ', results[0])
     print('AP: ', results[1])
     avg_recall = recalls.mean()

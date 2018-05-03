@@ -8,7 +8,7 @@ from datetime import datetime
 import pickle as pkl
 
 from faster_rcnn import network
-from faster_rcnn.faster_rcnn import FasterRCNN, RPN
+from faster_rcnn.faster_rcnn_4 import FasterRCNN, RPN
 from faster_rcnn.utils.timer import Timer
 
 import faster_rcnn.roi_data_layer.roidb as rdl_roidb

@@ -8,7 +8,7 @@ from datetime import datetime
 import pickle as pkl
 
 from faster_rcnn import network
-from faster_rcnn.faster_rcnn import FasterRCNN, RPN
+from faster_rcnn.faster_rcnn_4 import FasterRCNN, RPN
 from faster_rcnn.utils.timer import Timer
 
 import faster_rcnn.roi_data_layer.roidb as rdl_roidb
@@ -103,15 +103,27 @@ roidb = imdb.roidb
 net = FasterRCNN(classes=imdb.classes, debug=_DEBUG)
 network.weights_normal_init(net, dev=0.01)
 
+if os.path.exists('pretrained_vgg.pkl'):
+    pret_net = pkl.load(open('pretrained_vgg.pkl','rb'))
+else:
+    pret_net = model_zoo.load_url('https://download.pytorch.org/models/vgg16-397923af.pth')
+    pkl.dump(pret_net, open('pretrained_vgg.pkl','wb'), pkl.HIGHEST_PROTOCOL)
+own_state = net.state_dict()
+
+pret_net_keys = list(pret_net.keys())
+own_state_keys = list(own_state.keys())
+
 if not args.resume:
-    from keras2pytorch import transfer_keras2pytorch
-    #load from keras model
-    keras_mdl = '/home/qiqix/EyeWeS/wsdcnn/experiments/wsdcnn15/model.hdf5'
-    if os.path.exists(keras_mdl) is False:
-        print('exists not {}'.format(keras_mdl))
-        exit(0)
-    own_state = net.state_dict()
-    transfer_keras2pytorch(keras_mdl, own_state)
+    for name_pret, name_own in zip(pret_net_keys[:26], own_state_keys[:26]):
+        param = pret_net[name_pret]
+        if isinstance(param, Parameter):
+            param = param.data
+        try:
+            own_state[name_own].copy_(param)
+            print('Copied {} to {}'.format(name_pret, name_own))
+        except:
+            print('Did not find {}'.format(name_pret))
+            continue
 
 # Move model to GPU and set train mode
 net.cuda()
@@ -203,8 +215,7 @@ def train(loader, net, optimizer, epoch, logger):
             show_img = np.uint8(im_data + cfg.PIXEL_MEANS)[0]
             for gt_box in gt_boxes:
                 cv2.rectangle(show_img, (gt_box[0], gt_box[1]), (gt_box[2], gt_box[3]), (0, 255, 0), 1)
-            #cv2.imshow('img', show_img)
-            cv2.imwrite('img{}.png'.format(step), show_img)
+            cv2.imshow('img', show_img)
             cv2.waitKey(0)
         
         # forward

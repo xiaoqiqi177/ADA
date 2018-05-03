@@ -48,14 +48,15 @@ vis = True
 # load config
 cfg_from_file(cfg_file)
 
-def vis_detections(im, class_name, dets, showcolor, thresh):
+def vis_detections(im, class_name, dets, showcolor, thresh, gt = False):
     """Visual debugging of detections."""
     for i in range(dets.shape[0]):
         bbox = tuple(int(np.round(x)) for x in dets[i, :4])
         score = dets[i, -1]
         if score > thresh:
             cv2.rectangle(im, bbox[0:2], bbox[2:4], showcolor, 1)
-            cv2.putText(im, '%s: %.3f' % (class_name, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN, 1.0, showcolor, thickness=1)
+            if gt is False:
+                cv2.putText(im, '%s: %.3f' % (class_name, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN, 1.0, showcolor, thickness=1)
     return im
 
 
@@ -124,7 +125,7 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.5, vis=False):
 
                 # skip j = 0, because it's the background class
                 for j in range(1, imdb.num_classes):
-                    inds = np.where(scores[:, j] > thresh)[0]
+                    inds = np.where(scores[:, j] >= thresh)[0]
                     cls_scores = scores[inds, j]
                     cls_boxes = boxes[inds, j * 4:(j + 1) * 4]
                     cls_dets = np.hstack((cls_boxes, cls_scores[:, np.newaxis])).astype(np.float32, copy=False)
@@ -143,22 +144,22 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.5, vis=False):
         
         #im2show = im.copy()
         im2show = new_im.copy()
+        im2show = vis_detections(im2show, imdb.classes[j], gt_dets, (0, 255, 0), thresh=thresh, gt=True)
         im2show = vis_detections(im2show, imdb.classes[j], cls_dets_all, (255, 0, 0), thresh=thresh)
-        im2show = vis_detections(im2show, imdb.classes[j], gt_dets, (0, 255, 0), thresh=thresh)
         for h_id in range(h_patch):
             for w_id in range(w_patch):
                 h_delta = h_id * cfg.TRAIN.CROP_H
                 w_delta = w_id * cfg.TRAIN.CROP_W
                 cropped_im = im2show[h_delta:h_delta+cfg.TRAIN.CROP_H, w_delta:w_delta+cfg.TRAIN.CROP_W,:].copy()
                 cropped_im_ori= new_im[h_delta:h_delta+cfg.TRAIN.CROP_H, w_delta:w_delta+cfg.TRAIN.CROP_W,:].copy()
-                cv2.imwrite(os.path.join(output_dir, str(h_id)+'_'+str(w_id)+'_'+ori_name+'_vis.png'), cropped_im)
-                cv2.imwrite(os.path.join(output_dir, str(h_id)+'_'+str(w_id)+'_'+ori_name+'_ori.png'), cropped_im_ori)
+                #cv2.imwrite(os.path.join(output_dir, str(h_id)+'_'+str(w_id)+'_'+ori_name+'_vis.png'), cropped_im)
+                #cv2.imwrite(os.path.join(output_dir, str(h_id)+'_'+str(w_id)+'_'+ori_name+'_ori.png'), cropped_im_ori)
 
-        cv2.imwrite(os.path.join(output_dir, ori_name+'_output.png'), im2show)
+        #cv2.imwrite(os.path.join(output_dir, ori_name+'_output.png'), im2show)
         detected_bboxes.append(cls_dets_all)
         gt_bboxes.append(gt_dets)
-        print('im_detect: {:d}/{:d} {:.3f}s' \
-            .format(i + 1, num_images, detect_time))
+        #print('im_detect: {:d}/{:d} {:.3f}s' \
+        #    .format(i + 1, num_images, detect_time))
 
     with open(os.path.join(output_dir, 'result.pkl'), 'wb') as f:
         pickle.dump([detected_bboxes, gt_bboxes], f)
@@ -173,9 +174,10 @@ if __name__ == '__main__':
     #network.load_net(trained_model, net)
     model = torch.load(trained_model)
     net.load_state_dict(model['state_dict'])
-    print('load model {} successfully!'.format(trained_model))
+    #print('load model {} successfully!'.format(trained_model))
 
     net.cuda()
     net.eval()
     # evaluation
+    print('thresh: ', args.thresh)
     test_net(save_name, net, imdb, max_per_image, thresh=args.thresh, vis=vis)

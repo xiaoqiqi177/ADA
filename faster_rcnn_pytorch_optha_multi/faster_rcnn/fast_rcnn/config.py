@@ -33,7 +33,7 @@ cfg = __C
 
 # region proposal network (RPN) or not
 __C.IS_RPN = True
-__C.ANCHOR_SCALES = [1, 2, 4]
+__C.ANCHOR_SCALES = [1, 2, 4, 8]
 __C.NCLASSES = 2
 #__C.NCLASSES = 21
 

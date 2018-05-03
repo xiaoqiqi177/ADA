@@ -2,7 +2,7 @@ EXP_DIR: faster_rcnn_end2end
 LOG_DIR: optha_part
 IS_MULTISCALE: False
 NET_NAME: VGGnet
-ANCHOR_SCALES: [1, 2, 4]
+ANCHOR_SCALES: [1, 2, 4, 8]
 NCLASSES: 2
 PIXEL_MEANS: [[[103.939, 116.779, 123.68]]]
 TRAIN:
