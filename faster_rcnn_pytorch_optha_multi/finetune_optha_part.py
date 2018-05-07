@@ -106,7 +106,7 @@ network.weights_normal_init(net, dev=0.01)
 if not args.resume:
     from keras2pytorch import transfer_keras2pytorch
     #load from keras model
-    keras_mdl = '/home/qiqix/EyeWeS/wsdcnn/experiments/wsdcnn15/model.hdf5'
+    keras_mdl = '/home/qiqix/EyeWeS/wsdcnn/experiments/wsdcnn16/model.hdf5'
     if os.path.exists(keras_mdl) is False:
         print('exists not {}'.format(keras_mdl))
         exit(0)

@@ -65,8 +65,6 @@ if __name__ == '__main__':
 
     y_true = []
     y_pred = []
-    recalls = []
-    precisions = []
     total_recall = 0.
     total_precision = 0.
     sum_gt_bbs = 0
@@ -91,25 +89,23 @@ if __name__ == '__main__':
 
         if gt_bb > 0:
             y_true.append(1)
-            recalls.append(len(overlap) / gt_bb)
-            precisions.append(len(overlap) / detected_bb)
-            sum_overlaps += len(overlap)
-            sum_gt_bbs += gt_bb
-            sum_detected_bbs += detected_bb
         else:
             y_true.append(0)
+        sum_overlaps += len(overlap)
+        sum_gt_bbs += gt_bb
+        sum_detected_bbs += detected_bb
     y_true = np.array(y_true)
     y_pred = np.array(y_pred).reshape(-1, 1)
-    recalls = np.array(recalls)
-    precisions = np.array(precisions)
+    #recalls = np.array(recalls)
+    #precisions = np.array(precisions)
     results = evaluate(y_true, y_pred, metrics=['AUC', 'AP'])
     print('AUC: ', results[0])
     print('AP: ', results[1])
-    avg_recall = recalls.mean()
+    #avg_recall = recalls.mean()
     total_recall = sum_overlaps / sum_gt_bbs
     #print('avg_recall: ', avg_recall)
     print('total_recall: ', total_recall)
-    avg_precision = precisions.mean()
+    #avg_precision = precisions.mean()
     total_precision = sum_overlaps / sum_detected_bbs
     #print('avg_precision: ', avg_precision)
     print('total_precison: ', total_precision)

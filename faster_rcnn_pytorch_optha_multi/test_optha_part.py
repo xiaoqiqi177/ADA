@@ -56,7 +56,7 @@ def vis_detections(im, class_name, dets, showcolor, thresh, gt = False):
         if score > thresh:
             cv2.rectangle(im, bbox[0:2], bbox[2:4], showcolor, 1)
             if gt is False:
-                cv2.putText(im, '%s: %.3f' % (class_name, score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN, 1.0, showcolor, thickness=1)
+                cv2.putText(im, '%.3f' % (score), (bbox[0], bbox[1] + 15), cv2.FONT_HERSHEY_PLAIN, 1.0, showcolor, thickness=1)
     return im
 
 
@@ -155,7 +155,7 @@ def test_net(name, net, imdb, max_per_image=300, thresh=0.5, vis=False):
                 #cv2.imwrite(os.path.join(output_dir, str(h_id)+'_'+str(w_id)+'_'+ori_name+'_vis.png'), cropped_im)
                 #cv2.imwrite(os.path.join(output_dir, str(h_id)+'_'+str(w_id)+'_'+ori_name+'_ori.png'), cropped_im_ori)
 
-        #cv2.imwrite(os.path.join(output_dir, ori_name+'_output.png'), im2show)
+        cv2.imwrite(os.path.join(output_dir, ori_name+'_output.png'), im2show)
         detected_bboxes.append(cls_dets_all)
         gt_bboxes.append(gt_dets)
         #print('im_detect: {:d}/{:d} {:.3f}s' \

@@ -26,8 +26,6 @@ def expected_feature_difference(ps, Sps, fi_sets, average_feature):
             fi_set_p = fi_set[Sp]
         except:
             print('error in expected_feature_difference')
-            import IPython
-            IPython.embed()
         new_feature += np.sum(p.reshape(p.shape[0], 1) * fi_set_p, axis=0)
     new_feature /= len(ps)
     return new_feature - average_feature
@@ -38,8 +36,6 @@ def update_theta(theta, average_feature, Sps, ps, fi_sets, stepsize):
         gradient = difference
     except:
         print('error in update_theta')
-        import IPython
-        IPython.embed()
     new_theta = theta - stepsize * gradient
     return new_theta
 
