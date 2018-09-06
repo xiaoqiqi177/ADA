@@ -8,6 +8,8 @@ The repository includes:
 * Part results of experiment on VOC 2007 dataset.
 
 # Getting Started
+## 1. Download gurobi and activate it.
+## 2. Compile [faster_rcnn](extractor/faster_rcnn_pytorch/faster_rcnn)
 
 # Steps
 
@@ -18,5 +20,6 @@ run [get_box_proposals.py](extractor/get_box_proposals.py).
 run [feature_extractor_bbslist.py](extractor/feature_extractor_bbslist.py) and [feature_extractor_gt.py](extractor/feature_extractor_gt.py).
 
 ## 2. Train
-run 
+run [train_ada.py](ada/train_ada.py).
 ## 3. Test
+run [test_ada.py](ada/test_ada.py).
