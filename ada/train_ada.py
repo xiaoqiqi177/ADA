@@ -23,7 +23,7 @@ def expected_feature_difference(ps, Sps, fi_sets, average_feature):
     new_feature = np.zeros(average_feature.shape, dtype='float32')
     for p, Sp, fi_set in zip(ps, Sps, fi_sets): #lenp * 1024
         try:
-            fi_set_p = fi_set[Sp]
+            fi_set_p = np.array(fi_set)[Sp]
         except:
             print('error in expected_feature_difference')
         new_feature += np.sum(p.reshape(p.shape[0], 1) * fi_set_p, axis=0)
@@ -73,6 +73,8 @@ def train_thread_bid(bid, img_path, gt, fi_gt, Y, fi_set):
         cv2.waitKey(0)
     psi_set = np.array([ sum(theta * (fi - fi_gt)) for fi in fi_set ])
     Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
+    assert max(Sp) < len(fi_set)
+    return f, p, Sf, Sp, fi_set
 
 def load_info_train(dataset_name, target_classname):
     img_paths, bboxs_gts = get_dataset_info(dataset_name)
@@ -102,6 +104,8 @@ if __name__ == '__main__':
     parser.add_argument('--tol', type=float, default=1e-3)
     parser.add_argument('--stepsize', type=float, default=0.1)
     parser.add_argument('--iou-threshold', type=float, default=0.5)
+    parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--pool-size', type=int, default=8)
     args = parser.parse_args()
     dataset_name = args.dataset_name
     target_classname = args.classname
@@ -145,7 +149,7 @@ if __name__ == '__main__':
     if DEBUG:
         batch_size = 1
     else:
-        batch_size = 32
+        batch_size = args.batch_size
     get_ids = produce_batch_size_ids(ids, batch_size) 
     
     #extract bbs feature by outter extractor
@@ -169,12 +173,12 @@ if __name__ == '__main__':
         iter_number += 1
         fs, ps = [], []
         Sfs, Sps = [], []
-        fi_sets = []
+        #fi_sets = []
         batch_ids = next(get_ids)
         if DEBUG:
             pool = Pool(1, init_worker)
         else:
-            pool = Pool(8, init_worker)
+            pool = Pool(args.pool_size, init_worker)
         global data
         data = []
         def log_result(result):
@@ -191,11 +195,14 @@ if __name__ == '__main__':
                 with open(dets_pkl, 'rb') as fdets:
                     fi_set = pkl.load(fdets)
                 fi_set = [ fi / norm(fi) for fi in fi_set ]
-                if len(fi_set) < bb_number_threshold:
-                    print(len(fi_set))
-                    continue
-                fi_sets.append(np.array(fi_set[:bb_number_threshold]))
-                pids.append(pool.apply_async(train_thread_bid, (idx, img_path, gt, fi_gt, Y[:bb_number_threshold], fi_set[:bb_number_threshold]), callback = log_result))
+                #if len(fi_set) < bb_number_threshold:
+                #    print(len(fi_set))
+                #    continue
+                if len(fi_set) > bb_number_threshold:
+                    fi_set = fi_set[:bb_number_threshold]
+                    Y = Y[:bb_number_threshold]
+                #fi_sets.append(np.array(fi_set[:bb_number_threshold]))
+                pids.append(pool.apply_async(train_thread_bid, (idx, img_path, gt, fi_gt, Y, fi_set), callback = log_result))
             pool.close()
             pool.join()
         except KeyboardInterrupt:
@@ -207,11 +214,12 @@ if __name__ == '__main__':
         ps = [ d[1] for d in data ]
         Sfs = [ d[2] for d in data ]
         Sps = [ d[3] for d in data ]
+        fi_sets = [ d[4] for d in data ]
         print('*---- update theta ----*')
-        theta = update_theta(theta, average_feature, Sps, ps, np.array(fi_sets), stepsize)
+        theta = update_theta(theta, average_feature, Sps, ps, fi_sets, stepsize)
         saved_theta.append(theta)
         #intermediate data periodically
-        delta = test_convergence(theta, average_feature, Sps, ps, np.array(fi_sets))
+        delta = test_convergence(theta, average_feature, Sps, ps, fi_sets)
         print('delta of Loop {}: {}'.format(iter_number, delta))
         if delta < tol:
             convergence = True
