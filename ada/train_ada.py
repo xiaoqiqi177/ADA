@@ -72,7 +72,7 @@ def train_thread_bid(bid, img_path, gt, fi_gt, Y, fi_set):
         cv2.imshow('img', img)
         cv2.waitKey(0)
     psi_set = np.array([ sum(theta * (fi - fi_gt)) for fi in fi_set ])
-    Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
+    Sf, f, Sp, p = nash_equilibrium(img_path, dets, psi_set)
     assert max(Sp) < len(fi_set)
     return f, p, Sf, Sp, fi_set
 

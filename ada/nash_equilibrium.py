@@ -17,7 +17,7 @@ def solveGame(dets, Sf, Sp, psi_set):
     assert abs(v1 - v2) < tol
     return f, p, v1
     
-def nash_equilibrium(imgpath, theta, dets, psi_set):
+def nash_equilibrium(imgpath, dets, psi_set):
     Sp = []
     Sf = []
     #arbitrary pick at first, argmax according to the original paper

@@ -44,10 +44,11 @@ def solve_p(G):
     return values_p, m.getVars()[-1].x
 
 if __name__ == '__main__':
-    #G = np.array([[0, 0, 0],
-    #    [0, 0, 0],
-    #    [1, 1, -1]], dtype='float32')
-    G = np.array([[-1.]], dtype='float32')
+    G = np.array([[0.3, 0., 0.7],
+        [0.5, 0., 0.3],
+        [0.2, 1., 0.]], dtype='float32')
+
+    #G = np.array([[-1.]], dtype='float32')
     f = solve_f(G)
     p = solve_p(G)
     print(f)

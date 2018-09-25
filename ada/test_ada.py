@@ -29,7 +29,7 @@ def test_thread_bid(bid, img_path, Y, fi_set):
     dets = [ det[:-1] for det in Y]
     dets = np.array(dets)
     psi_set = np.array([ sum(theta * fi) for fi in fi_set ])
-    Sf, f, Sp, p = nash_equilibrium(img_path, theta, dets, psi_set)
+    Sf, f, Sp, p = nash_equilibrium(img_path, dets, psi_set)
     maxp = 0.
     maxid = -1
     for p, fid in zip(f, Sf):
