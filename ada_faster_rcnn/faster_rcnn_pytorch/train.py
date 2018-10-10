@@ -95,6 +95,7 @@ if os.path.exists('pretrained_vgg.pkl'):
 else:
     pret_net = model_zoo.load_url('https://download.pytorch.org/models/vgg16-397923af.pth')
     pkl.dump(pret_net, open('pretrained_vgg.pkl','wb'), pkl.HIGHEST_PROTOCOL)
+
 own_state = net.state_dict()
 for name, param in pret_net.items():
     if name not in own_state:
@@ -109,7 +110,6 @@ for name, param in pret_net.items():
         continue
 
 # Move model to GPU and set train mode
-
 net.cuda()
 net.train()
 
