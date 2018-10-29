@@ -42,12 +42,15 @@ def save_net(fname, net):
 
 
 def load_net(fname, net):
-    import h5py
-    h5f = h5py.File(fname, mode='r')
-    for k, v in net.state_dict().items():
-        param = torch.from_numpy(np.asarray(h5f[k]))
-        v.copy_(param)
-
+    if fname.endswith('h5'):
+        import h5py
+        h5f = h5py.File(fname, mode='r')
+        for k, v in net.state_dict().items():
+            param = torch.from_numpy(np.asarray(h5f[k]))
+            v.copy_(param)
+    else:
+        checkpoint = torch.load(fname)
+        net.load_state_dict(checkpoint['state_dict'])
 
 def load_pretrained_npy(faster_rcnn_model, fname):
     params = np.load(fname).item()

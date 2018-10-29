@@ -28,12 +28,6 @@ try:
 except ImportError:
     cprint = None
 
-try:
-    from pycrayon import CrayonClient
-except ImportError:
-    CrayonClient = None
-
-
 def log_print(text, color=None, on_color=None, attrs=None):
     if cprint is not None:
         cprint(text, color=color, on_color=on_color, attrs=attrs)
@@ -44,7 +38,6 @@ def log_print(text, color=None, on_color=None, attrs=None):
 # ------------
 imdb_name = 'voc_2007_trainval'
 cfg_file = 'experiments/cfgs/faster_rcnn_end2end.yml'
-#pretrained_model = 'data/pretrained_model/VGG_imagenet.npy'
 output_dir = 'models/voc_2007'
 
 start_step = 0
@@ -55,10 +48,7 @@ lr_decay = 1./10
 rand_seed = 1024
 _DEBUG = True
 use_tensorboard = True
-remove_all_log = False   # remove all historical experiments in TensorBoard
 exp_name = None # the previous experiment name in TensorBoard
-
-# ------------
 
 if rand_seed is not None:
     np.random.seed(rand_seed)
@@ -81,14 +71,6 @@ data_layer = RoIDataLayer(roidb, imdb.num_classes)
 # load net
 net = FasterRCNN(classes=imdb.classes, debug=_DEBUG)
 network.weights_normal_init(net, dev=0.01)
-#network.load_pretrained_npy(net, pretrained_model)
-# model_file = '/media/longc/Data/models/VGGnet_fast_rcnn_iter_70000.h5'
-# model_file = 'models/saved_model3/faster_rcnn_60000.h5'
-# network.load_net(model_file, net)
-# exp_name = 'vgg16_02-19_13-24'
-# start_step = 60001
-# lr /= 10.
-# network.weights_normal_init([net.bbox_fc, net.score_fc, net.fc6, net.fc7], dev=0.01)
 
 if os.path.exists('pretrained_vgg.pkl'):
     pret_net = pkl.load(open('pretrained_vgg.pkl','rb'))
@@ -114,7 +96,6 @@ net.cuda()
 net.train()
 
 params = list(net.parameters())
-# optimizer = torch.optim.Adam(params[-8:], lr=lr)
 optimizer = torch.optim.SGD(params[8:], lr=lr, momentum=momentum, weight_decay=weight_decay)
 
 if not os.path.exists(output_dir):

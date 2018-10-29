@@ -18,7 +18,7 @@ if __name__ == '__main__':
     dataset_name = args.dataset_name
     img_paths, gts = get_dataset_info(dataset_name) 
     
-    bbslist_pkl = '../pkls/vot_{}_bbslist_{}.pkl'.format(dataset_name, classname)
+    bbslist_pkl = '../pkls/vot_{}_bbslist.pkl'.format(dataset_name)
     if os.path.exists(bbslist_pkl):
         dets_info = pkl.load(open(bbslist_pkl, 'rb'))
         img_paths = dets_info[0]
@@ -27,16 +27,17 @@ if __name__ == '__main__':
         print('no bounding boxes pkls, exit')
         exit(0)
 
-    model_file = 'faster_rcnn_pytorch/models/VGGnet_fast_rcnn_iter_70000.h5'
+    #model_file = 'faster_rcnn_pytorch/models/VGGnet_fast_rcnn_iter_70000.h5'
+    model_file = '../faster_rcnn_voc/models/saved_vot2007/faster_rcnn_270000.pth.tar'
     extractor = build_extractor(model_file)
     
     #features_dets = []
     
-    pkl_dir = '../pkls/vot_features_{}_bbslist'.format(dataset_name)
+    pkl_dir = '../pkls/new_vot_features_{}_bbslist'.format(dataset_name)
     if not os.path.exists(pkl_dir):
         os.mkdir(pkl_dir)
     for img_path, bbs in zip(img_paths, bbslist):
-        #img_path = os.path.join('../', img_path.split('/', 6)[-1])
+        img_path = os.path.join('../', img_path.split('/', 6)[-1])
         dets = np.array([[0., bb[1], bb[0], bb[3], bb[2]] for bb in bbs], dtype='float32')
         DEBUG = False
         if DEBUG:

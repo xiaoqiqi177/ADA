@@ -78,7 +78,7 @@ def train_thread_bid(bid, img_path, gt, fi_gt, Y, fi_set):
 
 def load_info_train(dataset_name, target_classname):
     img_paths, bboxs_gts = get_dataset_info(dataset_name)
-    gt_info = pkl.load(open('../pkls/vot_'+dataset_name+'_gt.pkl', 'rb'))
+    gt_info = pkl.load(open('../pkls/new_vot_'+dataset_name+'_gt.pkl', 'rb'))
     classes_gt = gt_info[0]
     features_gt = gt_info[1]
     features_gt_use = []
@@ -153,7 +153,7 @@ if __name__ == '__main__':
     get_ids = produce_batch_size_ids(ids, batch_size) 
     
     #extract bbs feature by outter extractor
-    pkl_dir = '../pkls/vot_features_{}_bbslist'.format(dataset_name)
+    pkl_dir = '../pkls/new_vot_features_{}_bbslist'.format(dataset_name)
     if not os.path.exists(pkl_dir):
         print('exists not {}'.format(pkl_dir))
         exit(0)
@@ -207,6 +207,7 @@ if __name__ == '__main__':
             pool.join()
         except KeyboardInterrupt:
             print("catch keyboard interrupt, prepare to stop")
+            pkl.dump(saved_theta, open('saved_theta_{}.pkl'.format(target_classname), 'wb'))
             pool.terminate()
             pool.join()
             break

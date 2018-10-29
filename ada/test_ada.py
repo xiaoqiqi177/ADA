@@ -57,7 +57,7 @@ def test_accuracy(detslist_test, results, gts_test, neglected_set, iou_threshold
 
 def load_info_test(dataset_name, target_classname):
     img_paths, bboxs_gts = get_dataset_info(dataset_name)
-    gt_info = pkl.load(open('../pkls/vot_'+dataset_name+'_gt.pkl', 'rb'))
+    gt_info = pkl.load(open('../pkls/new_vot_'+dataset_name+'_gt.pkl', 'rb'))
     classes_gt = gt_info[0]
     features_gt = gt_info[1]
     features_gt_use = []
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         saved_theta = pkl.load(open('saved_theta_{}.pkl'.format(target_classname), 'rb'))
     theta = saved_theta[-1]
     #extract bbs feature by outter extractor
-    pkl_dir = '../pkls/vot_features_{}_bbslist'.format(dataset_name)
+    pkl_dir = '../pkls/new_vot_features_{}_bbslist'.format(dataset_name)
     if not os.path.exists(pkl_dir):
         print('exists not {}'.format(pkl_dir))
         exit(0)

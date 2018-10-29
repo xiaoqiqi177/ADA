@@ -31,7 +31,7 @@ CLASS_NAMES = [
     'tvmonitor',
 ]
 def test_features(dataset_name):
-    gt_pkl = '../pkls/vot_{}_gt.pkl'.format(dataset_name)
+    gt_pkl = '../pkls/new_vot_{}_gt.pkl'.format(dataset_name)
     classes_gt, features_gt = pkl.load(open(gt_pkl, 'rb'))
     feature_summary = { classname:[] for classname in CLASS_NAMES }
     feature_all = []
@@ -55,7 +55,8 @@ def test_features(dataset_name):
 def extract_gt_features(dataset_name):
     sys.path.append('faster_rcnn_pytorch')
     from extract_feature_from_bb import extractfeatures, build_extractor
-    model_file = 'faster_rcnn_pytorch/models/VGGnet_fast_rcnn_iter_70000.h5'
+    #model_file = 'faster_rcnn_pytorch/models/VGGnet_fast_rcnn_iter_70000.h5'
+    model_file = '../faster_rcnn_voc/models/saved_vot2007/faster_rcnn_270000.pth.tar'
     extractor = build_extractor(model_file)
 
     img_paths, gts = get_dataset_info(dataset_name) 
@@ -76,10 +77,10 @@ def extract_gt_features(dataset_name):
         feature_gt = feature_gt.data.cpu().numpy()
         classes_gt.append(classes)
         features_gt.append(feature_gt)
-    gt_pkl = '../pkls/vot_{}_gt.pkl'.format(dataset_name)
+    gt_pkl = '../pkls/new_vot_{}_gt.pkl'.format(dataset_name)
     pkl.dump([classes_gt, features_gt], open(gt_pkl, 'wb'))
 
 if __name__ == '__main__':
-    dataset_name = 'test'
-    extract_gt_features(dataset_name)
+    dataset_name = 'trainval'
+    #extract_gt_features(dataset_name)
     test_features(dataset_name)
